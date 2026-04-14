@@ -21,6 +21,7 @@ interface WorkoutStore {
   // Actions
   addWorkout: (workout: Omit<WorkoutEntry, 'id' | 'timestamp'>) => void;
   deleteWorkout: (id: string) => void;
+  hydrateData: (data: { workouts: WorkoutEntry[]; dailyGoal: DailyGoal }) => void;
   setDailyGoal: (goal: DailyGoal) => void;
   clearNewAchievements: () => void;
   getWorkoutsForDate: (date: string) => WorkoutEntry[];
@@ -45,6 +46,50 @@ const DEFAULT_GOAL: DailyGoal = {
   activeKcal: 300,
 };
 
+function calculateStatsFromWorkouts(workouts: WorkoutEntry[]): UserStats {
+  const totalReps = workouts.reduce((sum, workout) => sum + workout.reps, 0);
+  const totalActiveKcal = workouts.reduce(
+    (sum, workout) => sum + workout.activeKcal,
+    0
+  );
+  const totalXP = Math.round(
+    totalReps * XP_PER_REP + totalActiveKcal * XP_PER_ACTIVE_KCAL
+  );
+  const workoutDates = new Set(workouts.map((workout) => workout.date));
+  const lastWorkoutDate =
+    workouts.length > 0
+      ? workouts.reduce(
+          (latestDate, workout) =>
+            workout.date > latestDate ? workout.date : latestDate,
+          workouts[0].date
+        )
+      : null;
+
+  const computedStats: UserStats = {
+    ...DEFAULT_STATS,
+    totalXP,
+    level: calculateLevel(totalXP),
+    totalReps,
+    totalActiveKcal,
+    totalWorkouts: workoutDates.size,
+    lastWorkoutDate,
+  };
+
+  const unlockedAchievements: string[] = [];
+
+  for (const achievement of ACHIEVEMENTS) {
+    if (achievement.requirement(computedStats)) {
+      unlockedAchievements.push(achievement.id);
+      computedStats.totalXP += achievement.xpReward;
+      computedStats.level = calculateLevel(computedStats.totalXP);
+    }
+  }
+
+  computedStats.unlockedAchievements = unlockedAchievements;
+
+  return computedStats;
+}
+
 export const useWorkoutStore = create<WorkoutStore>()(
   persist(
     (set, get) => ({
@@ -60,46 +105,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
 
         set((state) => {
           const newWorkouts = [...state.workouts, workout];
-
-          // Calculate XP earned (simple: 1 XP per rep, 0.5 per kcal)
-          const xpEarned = Math.round(
-            workout.reps * XP_PER_REP +
-            workout.activeKcal * XP_PER_ACTIVE_KCAL
+          const newStats = calculateStatsFromWorkouts(newWorkouts);
+          const newUnlocked = newStats.unlockedAchievements.filter(
+            (achievementId) =>
+              !state.stats.unlockedAchievements.includes(achievementId)
           );
-
-          const today = format(new Date(), 'yyyy-MM-dd');
-
-          // Count unique workout days
-          const existingDates = new Set(state.workouts.map(w => w.date));
-          const isNewDay = !existingDates.has(today);
-
-          const newStats: UserStats = {
-            ...state.stats,
-            totalXP: state.stats.totalXP + xpEarned,
-            level: calculateLevel(state.stats.totalXP + xpEarned),
-            totalReps: state.stats.totalReps + workout.reps,
-            totalActiveKcal: state.stats.totalActiveKcal + workout.activeKcal,
-            totalWorkouts: isNewDay ? state.stats.totalWorkouts + 1 : state.stats.totalWorkouts,
-            lastWorkoutDate: today,
-          };
-
-          // Check for new achievements
-          const newUnlocked: string[] = [];
-          for (const achievement of ACHIEVEMENTS) {
-            if (
-              !state.stats.unlockedAchievements.includes(achievement.id) &&
-              achievement.requirement(newStats)
-            ) {
-              newUnlocked.push(achievement.id);
-              newStats.totalXP += achievement.xpReward;
-              newStats.level = calculateLevel(newStats.totalXP);
-            }
-          }
-
-          newStats.unlockedAchievements = [
-            ...state.stats.unlockedAchievements,
-            ...newUnlocked,
-          ];
 
           return {
             workouts: newWorkouts,
@@ -110,9 +120,24 @@ export const useWorkoutStore = create<WorkoutStore>()(
       },
 
       deleteWorkout: (id) => {
-        set((state) => ({
-          workouts: state.workouts.filter((w) => w.id !== id),
-        }));
+        set((state) => {
+          const workouts = state.workouts.filter((workout) => workout.id !== id);
+
+          return {
+            workouts,
+            stats: calculateStatsFromWorkouts(workouts),
+            newAchievements: [],
+          };
+        });
+      },
+
+      hydrateData: ({ workouts, dailyGoal }) => {
+        set({
+          workouts,
+          dailyGoal,
+          stats: calculateStatsFromWorkouts(workouts),
+          newAchievements: [],
+        });
       },
 
       setDailyGoal: (goal) => {

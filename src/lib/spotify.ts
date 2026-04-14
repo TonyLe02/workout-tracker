@@ -1,5 +1,4 @@
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || '';
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
 
 // Dynamic redirect URI based on environment
 const getRedirectUri = () => {
@@ -21,6 +20,38 @@ export interface SpotifyTrack {
   progress: number;
   duration: number;
   trackUrl: string;
+}
+
+interface SpotifyArtist {
+  name: string;
+}
+
+interface SpotifyImage {
+  url: string;
+}
+
+interface SpotifyCurrentlyPlayingResponse {
+  is_playing: boolean;
+  progress_ms: number;
+  item?: {
+    name: string;
+    artists: SpotifyArtist[];
+    album: {
+      name: string;
+      images: SpotifyImage[];
+    };
+    duration_ms: number;
+    external_urls: {
+      spotify: string;
+    };
+  };
+}
+
+interface SpotifyTokenResponse {
+  access_token?: string;
+}
+interface SpotifyPlayerState {
+  is_playing: boolean;
 }
 
 // Generate random string for PKCE
@@ -87,7 +118,7 @@ export async function exchangeCodeForToken(code: string): Promise<string | null>
       }),
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as SpotifyTokenResponse;
     localStorage.removeItem('spotify_code_verifier');
     
     if (data.access_token) {
@@ -112,7 +143,7 @@ export async function getCurrentlyPlaying(accessToken: string): Promise<SpotifyT
       return null;
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as SpotifyCurrentlyPlayingResponse;
 
     if (!data || !data.item) {
       return null;
@@ -120,7 +151,7 @@ export async function getCurrentlyPlaying(accessToken: string): Promise<SpotifyT
 
     return {
       name: data.item.name,
-      artist: data.item.artists.map((a: any) => a.name).join(', '),
+      artist: data.item.artists.map((artist) => artist.name).join(', '),
       album: data.item.album.name,
       albumArt: data.item.album.images[0]?.url || '',
       isPlaying: data.is_playing,
@@ -149,7 +180,7 @@ export async function playPause(accessToken: string): Promise<boolean> {
     });
     
     if (stateRes.status === 204) return false;
-    const state = await stateRes.json();
+    const state = (await stateRes.json()) as SpotifyPlayerState;
     
     const endpoint = state.is_playing ? 'pause' : 'play';
     await fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, {

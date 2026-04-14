@@ -7,6 +7,7 @@ https://workout-tracker-two-kappa.vercel.app/
 - **Calculator Rep Counter** - Numpad-style input for counting reps
 - **Heart Rate Calories** - Manual input for active/total kcal from Airpods or fitness tracker
 - **XP & Leveling System** - Earn XP from every rep and calorie burned
+- **Google Sync** - Sign in with Google to sync workouts across desktop and phone
 - **Session Tracking** - Track total workout sessions and average reps per session
 - **Adjustable Daily Goals** - Set your own rep and calorie targets
 - **35+ Achievements** - Unlock badges across bronze, silver, gold, and diamond tiers
@@ -30,6 +31,23 @@ To enable Spotify Now Playing with playback controls:
 NEXT_PUBLIC_SPOTIFY_CLIENT_ID=your_client_id_here
 ```
 
+### Supabase + Google Auth (Optional)
+
+To sync workouts across devices:
+
+1. Create a Supabase project
+2. Enable **Google** under **Authentication > Providers**
+3. Add your app URL(s) to Supabase redirect URLs
+4. Run the SQL in `supabase/schema.sql` in the Supabase SQL editor
+5. Add these values to `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
+
+Do not use your Supabase secret key in the frontend app.
+
 ## Getting Started
 
 ```bash
@@ -47,10 +65,11 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
 - **Next.js 14** - React framework
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Styling
-- **Zustand** - State management with localStorage persistence
+- **Zustand** - State management with localStorage fallback
 - **Recharts** - Charts and visualizations
 - **Lucide React** - Icons
 - **date-fns** - Date utilities
+- **Supabase** - Google auth and synced cloud storage
 
 ## XP System
 
@@ -83,5 +102,6 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
 | 100 | Olympian |
 
 ## Data Storage
-
-All data is stored locally in your browser using localStorage. No account required!
+- **Signed out**: data stays in localStorage on that device
+- **Signed in with Google**: workouts, goals, name, and avatar sync through Supabase
+- **Spotify token**: still stays local per device

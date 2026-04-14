@@ -1,7 +1,7 @@
 'use client';
 
 // Icons
-import { Activity, Flame, Hash, Calendar } from 'lucide-react';
+import { Calendar, Flame, Hash } from 'lucide-react';
 
 interface StatsCardsProps {
   totalReps: number;

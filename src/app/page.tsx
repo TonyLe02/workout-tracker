@@ -1,44 +1,130 @@
 'use client';
 
 // React/Next.js
-import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { useEffect, useRef, useState } from 'react';
 
 // External libraries
 import { format } from 'date-fns';
+import type { User } from '@supabase/supabase-js';
 
 // Store/State management
 import { useWorkoutStore } from '@/store/workout-store';
 
 // Components
+import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
 import { Calculator } from '@/components/Calculator';
+import { DailyGoals } from '@/components/DailyGoals';
 import { KcalInput } from '@/components/KcalInput';
 import { LevelCard } from '@/components/LevelCard';
-import { SessionsCard } from '@/components/SessionsCard';
-import { DailyGoals } from '@/components/DailyGoals';
-import { WeeklyChart } from '@/components/WeeklyChart';
-import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
-import { StatsCards } from '@/components/StatsCards';
 import { NowPlaying } from '@/components/NowPlaying';
+import { SessionsCard } from '@/components/SessionsCard';
+import { StatsCards } from '@/components/StatsCards';
+import { WeeklyChart } from '@/components/WeeklyChart';
 
 // Utils/Helpers
 import { getSpotifyAuthUrl } from '@/lib/spotify';
-
-// Icons
-import { Dumbbell, Settings } from 'lucide-react';
+import {
+  fetchProfile,
+  fetchWorkouts,
+  getCurrentUser,
+  isSupabaseConfigured,
+  onAuthStateChange,
+  signInWithGoogle,
+  signOutFromSupabase,
+  upsertProfile,
+  upsertWorkouts,
+} from '@/lib/supabase';
 
 // Types/Interfaces
 import { ACHIEVEMENTS } from '@/data/achievements';
+import type { DailyGoal, WorkoutEntry } from '@/types/workout';
+
+// Icons
+import { Check, Cloud, Dumbbell, Loader2, LogOut } from 'lucide-react';
+
+type SyncStatus = 'local' | 'syncing' | 'synced' | 'error';
+
+function getInitials(name: string) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return initials || 'U';
+}
+
+function mergeWorkouts(
+  localWorkouts: WorkoutEntry[],
+  remoteWorkouts: WorkoutEntry[]
+) {
+  const workoutMap = new Map<string, WorkoutEntry>();
+
+  for (const workout of remoteWorkouts) {
+    workoutMap.set(workout.id, workout);
+  }
+
+  for (const workout of localWorkouts) {
+    workoutMap.set(workout.id, workout);
+  }
+
+  return Array.from(workoutMap.values()).sort(
+    (leftWorkout, rightWorkout) => leftWorkout.timestamp - rightWorkout.timestamp
+  );
+}
+
+function getUserMetadataName(user: User | null) {
+  if (!user) {
+    return '';
+  }
+
+  if (typeof user.user_metadata.full_name === 'string') {
+    return user.user_metadata.full_name;
+  }
+
+  if (typeof user.user_metadata.name === 'string') {
+    return user.user_metadata.name;
+  }
+
+  return '';
+}
+
+function getUserMetadataAvatar(user: User | null) {
+  if (!user) {
+    return null;
+  }
+
+  if (typeof user.user_metadata.avatar_url === 'string') {
+    return user.user_metadata.avatar_url;
+  }
+
+  if (typeof user.user_metadata.picture === 'string') {
+    return user.user_metadata.picture;
+  }
+
+  return null;
+}
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('local');
   const [showAchievementPopup, setShowAchievementPopup] = useState(false);
   const [currentPopupIndex, setCurrentPopupIndex] = useState(0);
   const [previousLevel, setPreviousLevel] = useState(1);
   const [spotifyToken, setSpotifyToken] = useState<string | null>(null);
-  const [userName, setUserName] = useState('Tony Nguyen Le');
+  const [userName, setUserName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeName, setWelcomeName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasHydratedRemoteDataRef = useRef(false);
 
   const {
     workouts,
@@ -46,46 +132,244 @@ export default function Home() {
     dailyGoal,
     newAchievements,
     addWorkout,
-    setDailyGoal,
     clearNewAchievements,
     getTodayStats,
+    hydrateData,
+    setDailyGoal,
   } = useWorkoutStore();
 
-  // Handle hydration and load Spotify token + user name
   useEffect(() => {
     setMounted(true);
-    const token = localStorage.getItem('spotify_access_token');
-    if (token) {
-      setSpotifyToken(token);
+
+    const spotifyAccessToken = localStorage.getItem('spotify_access_token');
+    const localName = localStorage.getItem('user_name')?.trim() ?? '';
+    const localProfileImage = localStorage.getItem('profile_image');
+
+    if (spotifyAccessToken) {
+      setSpotifyToken(spotifyAccessToken);
     }
-    const savedName = localStorage.getItem('user_name');
-    if (savedName) {
-      setUserName(savedName);
+
+    if (localName) {
+      setUserName(localName);
+      setWelcomeName(localName);
     }
-    const savedImage = localStorage.getItem('profile_image');
-    if (savedImage) {
-      setProfileImage(savedImage);
+
+    if (localProfileImage) {
+      setProfileImage(localProfileImage);
     }
+
+    if (!isSupabaseConfigured) {
+      setShowWelcome(!localName);
+      return;
+    }
+
+    let isActive = true;
+
+    async function initializeAuth() {
+      try {
+        const currentUser = await getCurrentUser();
+
+        if (!isActive) {
+          return;
+        }
+
+        setAuthUser(currentUser);
+
+        if (!currentUser && !localName) {
+          setShowWelcome(true);
+        }
+      } finally {
+        if (isActive) {
+          setAuthReady(true);
+        }
+      }
+    }
+
+    initializeAuth();
+
+    const unsubscribe = onAuthStateChange((_event, session) => {
+      if (!isActive) {
+        return;
+      }
+
+      const nextUser = session?.user ?? null;
+      setAuthUser(nextUser);
+      setAuthReady(true);
+
+      if (!nextUser) {
+        const savedName = localStorage.getItem('user_name')?.trim() ?? '';
+        setShowWelcome(!savedName);
+        setSyncStatus('local');
+      }
+    });
+
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   }, []);
 
-  // Check for level up
   useEffect(() => {
     if (mounted && stats.level > previousLevel) {
       setPreviousLevel(stats.level);
     }
-  }, [stats.level, previousLevel, mounted]);
+  }, [mounted, previousLevel, stats.level]);
 
-  // Show achievement popup when new achievements are unlocked
   useEffect(() => {
     if (mounted && newAchievements.length > 0) {
       setShowAchievementPopup(true);
       setCurrentPopupIndex(0);
     }
-  }, [newAchievements, mounted]);
+  }, [mounted, newAchievements]);
+
+  useEffect(() => {
+    if (!mounted || !authReady) {
+      return;
+    }
+
+    if (!authUser) {
+      hasHydratedRemoteDataRef.current = false;
+      setSyncStatus('local');
+      return;
+    }
+
+    let isCancelled = false;
+    const currentUser = authUser;
+
+    async function hydrateRemoteData() {
+      setSyncStatus('syncing');
+      hasHydratedRemoteDataRef.current = false;
+
+      try {
+        const [remoteProfile, remoteWorkouts] = await Promise.all([
+          fetchProfile(currentUser.id),
+          fetchWorkouts(currentUser.id),
+        ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        const localState = useWorkoutStore.getState();
+        const localName = localStorage.getItem('user_name')?.trim() ?? '';
+        const localProfileImage = localStorage.getItem('profile_image');
+        const mergedWorkouts = mergeWorkouts(localState.workouts, remoteWorkouts);
+        const mergedDailyGoal: DailyGoal = {
+          reps: remoteProfile?.daily_goal_reps ?? localState.dailyGoal.reps,
+          activeKcal:
+            remoteProfile?.daily_goal_active_kcal ?? localState.dailyGoal.activeKcal,
+        };
+        const mergedName = (
+          remoteProfile?.name?.trim() ||
+          localName ||
+          getUserMetadataName(currentUser)
+        ).trim();
+        const mergedProfileImage =
+          remoteProfile?.avatar_url ||
+          localProfileImage ||
+          getUserMetadataAvatar(currentUser);
+
+        hydrateData({
+          workouts: mergedWorkouts,
+          dailyGoal: mergedDailyGoal,
+        });
+
+        setUserName(mergedName);
+        setWelcomeName(mergedName);
+        setProfileImage(mergedProfileImage);
+        setShowWelcome(!mergedName);
+
+        if (mergedName) {
+          localStorage.setItem('user_name', mergedName);
+        } else {
+          localStorage.removeItem('user_name');
+        }
+
+        if (mergedProfileImage) {
+          localStorage.setItem('profile_image', mergedProfileImage);
+        } else {
+          localStorage.removeItem('profile_image');
+        }
+
+        await Promise.all([
+          upsertProfile(currentUser.id, {
+            name: mergedName,
+            avatarUrl: mergedProfileImage,
+            dailyGoal: mergedDailyGoal,
+          }),
+          upsertWorkouts(currentUser.id, mergedWorkouts),
+        ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        hasHydratedRemoteDataRef.current = true;
+        setSyncStatus('synced');
+      } catch (error) {
+        console.error('Failed to sync workout data from Supabase:', error);
+
+        if (!isCancelled) {
+          hasHydratedRemoteDataRef.current = true;
+          setSyncStatus('error');
+        }
+      }
+    }
+
+    hydrateRemoteData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [authReady, authUser, hydrateData, mounted]);
+
+  useEffect(() => {
+    if (!mounted || !authReady || !authUser || !hasHydratedRemoteDataRef.current) {
+      return;
+    }
+
+    const syncTimeout = window.setTimeout(async () => {
+      try {
+        setSyncStatus('syncing');
+
+        await Promise.all([
+          upsertProfile(authUser.id, {
+            name: userName.trim(),
+            avatarUrl: profileImage,
+            dailyGoal,
+          }),
+          upsertWorkouts(authUser.id, workouts),
+        ]);
+
+        setSyncStatus('synced');
+      } catch (error) {
+        console.error('Failed to save workout data to Supabase:', error);
+        setSyncStatus('error');
+      }
+    }, 500);
+
+    return () => {
+      window.clearTimeout(syncTimeout);
+    };
+  }, [
+    authReady,
+    authUser,
+    dailyGoal,
+    mounted,
+    profileImage,
+    userName,
+    workouts,
+  ]);
+
+  const currentAchievement = newAchievements[currentPopupIndex]
+    ? ACHIEVEMENTS.find(
+        (achievement) => achievement.id === newAchievements[currentPopupIndex]
+      )
+    : null;
 
   const handleCloseAchievementPopup = () => {
     if (currentPopupIndex < newAchievements.length - 1) {
-      setCurrentPopupIndex((prev) => prev + 1);
+      setCurrentPopupIndex((previousIndex) => previousIndex + 1);
     } else {
       setShowAchievementPopup(false);
       clearNewAchievements();
@@ -94,6 +378,7 @@ export default function Home() {
 
   const handleAddReps = (reps: number) => {
     const today = format(new Date(), 'yyyy-MM-dd');
+
     addWorkout({
       date: today,
       reps,
@@ -104,6 +389,7 @@ export default function Home() {
 
   const handleAddKcal = (activeKcal: number, totalKcal: number) => {
     const today = format(new Date(), 'yyyy-MM-dd');
+
     addWorkout({
       date: today,
       reps: 0,
@@ -112,41 +398,153 @@ export default function Home() {
     });
   };
 
-  // Get current achievement for popup
-  const currentAchievement = newAchievements[currentPopupIndex]
-    ? ACHIEVEMENTS.find((a) => a.id === newAchievements[currentPopupIndex])
-    : null;
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
-  // Get initials from name
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      const base64Image = reader.result as string;
+      setProfileImage(base64Image);
+      localStorage.setItem('profile_image', base64Image);
+    };
+
+    reader.readAsDataURL(file);
   };
 
-  // Handle profile image upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setProfileImage(base64);
-        localStorage.setItem('profile_image', base64);
-      };
-      reader.readAsDataURL(file);
+  const handleWelcomeSubmit = () => {
+    const trimmedName = welcomeName.trim();
+
+    if (!trimmedName) {
+      return;
+    }
+
+    setUserName(trimmedName);
+    localStorage.setItem('user_name', trimmedName);
+    setShowWelcome(false);
+  };
+
+  const handleSaveUserName = () => {
+    const trimmedName = userName.trim();
+
+    setUserName(trimmedName);
+    setIsEditingName(false);
+
+    if (trimmedName) {
+      localStorage.setItem('user_name', trimmedName);
+      setShowWelcome(false);
+      return;
+    }
+
+    localStorage.removeItem('user_name');
+    setShowWelcome(true);
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Failed to start Google sign-in:', error);
+      setSyncStatus('error');
     }
   };
 
-  // Don't render until mounted (prevents hydration issues)
-  if (!mounted) {
+  const handleSignOut = async () => {
+    try {
+      await signOutFromSupabase();
+      setAuthUser(null);
+      setSyncStatus('local');
+    } catch (error) {
+      console.error('Failed to sign out of Supabase:', error);
+      setSyncStatus('error');
+    }
+  };
+
+  if (!mounted || !authReady) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-primary text-xl">Loading...</div>
-      </div>
+      <main className="min-h-screen bg-background">
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+          style={{ backgroundImage: 'url(/background.jpg)' }}
+        />
+        <div className="fixed inset-0 bg-background/50 pointer-events-none" />
+        <div className="relative min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+              <Dumbbell className="w-8 h-8 text-white animate-pulse" />
+            </div>
+            <div className="flex items-center gap-2 text-text-secondary">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading your data...</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (showWelcome) {
+    return (
+      <main className="min-h-screen bg-background">
+        <div
+          className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
+          style={{ backgroundImage: 'url(/background.jpg)' }}
+        />
+        <div className="fixed inset-0 bg-background/50 pointer-events-none" />
+
+        <div className="relative min-h-screen flex items-center justify-center px-4">
+          <div className="glass rounded-2xl p-8 max-w-md w-full text-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-6">
+              <Dumbbell className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-text-primary mb-2">
+              Welcome to Workout Tracker
+            </h1>
+            <p className="text-text-secondary mb-6">
+              Choose a name for your tracker. You can keep it local or sync it
+              with Google later.
+            </p>
+
+            <input
+              type="text"
+              value={welcomeName}
+              onChange={(event) => setWelcomeName(event.target.value)}
+              onKeyDown={(event) =>
+                event.key === 'Enter' && handleWelcomeSubmit()
+              }
+              placeholder="Enter your name"
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-text-primary placeholder-text-secondary outline-none focus:border-white/40 text-center text-lg mb-4"
+            />
+
+            <button
+              onClick={handleWelcomeSubmit}
+              disabled={!welcomeName.trim()}
+              className={`w-full py-3 rounded-xl font-bold text-lg transition-all ${
+                welcomeName.trim()
+                  ? 'bg-white text-background hover:bg-white/90'
+                  : 'bg-white/20 text-text-secondary cursor-not-allowed'
+              }`}
+            >
+              Let&apos;s Go
+            </button>
+
+            {isSupabaseConfigured && (
+              <button
+                onClick={handleGoogleSignIn}
+                className="w-full mt-3 py-3 rounded-xl font-medium text-sm border border-white/20 text-white bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+              >
+                <Cloud className="w-4 h-4" />
+                Continue with Google
+              </button>
+            )}
+          </div>
+        </div>
+      </main>
     );
   }
 
@@ -155,43 +553,47 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Background image */}
-      <div 
+      <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none"
         style={{ backgroundImage: 'url(/background.jpg)' }}
       />
-      {/* Dark overlay for readability */}
       <div className="fixed inset-0 bg-background/50 pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-8">
+        <header className="flex items-start justify-between mb-8 gap-4">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
               <Dumbbell className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-2xl font-bold text-text-primary">Workout Tracker</h1>
+              <h1 className="text-lg sm:text-2xl font-bold text-text-primary">
+                Workout Tracker
+              </h1>
               <p className="hidden sm:block text-sm text-text-secondary">
-                Let's crush it today
+                Let&apos;s crush it today
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="text-right">
+
+          <div className="flex items-center gap-3 sm:gap-4">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
+
+            <div className="text-right flex flex-col justify-center">
               {isEditingName ? (
                 <input
                   type="text"
                   value={userName}
-                  onChange={(e) => setUserName(e.target.value)}
-                  onBlur={() => {
-                    setIsEditingName(false);
-                    localStorage.setItem('user_name', userName);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setIsEditingName(false);
-                      localStorage.setItem('user_name', userName);
+                  onChange={(event) => setUserName(event.target.value)}
+                  onBlur={handleSaveUserName}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      handleSaveUserName();
                     }
                   }}
                   autoFocus
@@ -200,35 +602,72 @@ export default function Home() {
               ) : (
                 <p
                   onClick={() => setIsEditingName(true)}
-                  className="text-sm sm:text-lg font-medium text-text-primary cursor-pointer hover:text-white/80"
+                  className="text-sm sm:text-lg font-medium text-text-primary cursor-pointer hover:text-white/80 leading-tight"
                 >
                   {userName}
                 </p>
               )}
-              <p className="hidden sm:block text-sm text-text-secondary">
+
+              <p className="text-xs sm:text-sm text-text-secondary leading-tight">
                 {format(new Date(), 'EEEE, MMMM d')}
               </p>
+
+              <div className="mt-1 flex items-center justify-end gap-2">
+                {syncStatus !== 'local' && (
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wide">
+                    {syncStatus === 'syncing' ? (
+                      <span className="inline-flex items-center gap-1 text-text-secondary">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Syncing
+                      </span>
+                    ) : syncStatus === 'synced' ? (
+                      <span className="inline-flex items-center gap-1 text-white/70 hover:text-green-400 transition-colors cursor-default">
+                        <Check className="w-3 h-3" />
+                        Synced
+                      </span>
+                    ) : (
+                      <span className="text-red-400">Sync error</span>
+                    )}
+                  </span>
+                )}
+
+                {isSupabaseConfigured &&
+                  (authUser ? (
+                    <button
+                      onClick={handleSignOut}
+                      className="text-[10px] sm:text-[11px] uppercase tracking-wide text-white/70 hover:text-red-400 inline-flex items-center gap-1 transition-colors"
+                      title="Sign out of Google sync"
+                    >
+                      <LogOut className="w-3 h-3" />
+                      <span>Sign out</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleGoogleSignIn}
+                      className="text-[10px] sm:text-[11px] uppercase tracking-wide text-white/80 hover:text-white inline-flex items-center gap-1"
+                    >
+                      <Cloud className="w-3 h-3" />
+                      Sync
+                    </button>
+                  ))}
+              </div>
             </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              accept="image/*"
-              className="hidden"
-            />
+
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/20 overflow-hidden hover:border-white/40 transition-colors flex-shrink-0"
+              className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 border-white/20 overflow-hidden hover:border-white/40 transition-colors flex-shrink-0"
               title="Click to change profile picture"
             >
               {profileImage ? (
-                <img
+                <Image
                   src={profileImage}
                   alt="Profile"
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  unoptimized
                 />
               ) : (
-                <div className="w-full h-full bg-white/10 flex items-center justify-center text-text-primary font-medium text-sm">
+                <div className="w-full h-full bg-white/10 flex items-center justify-center text-text-primary font-medium text-sm sm:text-base">
                   {getInitials(userName)}
                 </div>
               )}
@@ -236,15 +675,12 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Input */}
           <div className="space-y-6">
             <Calculator onSubmit={handleAddReps} />
             <KcalInput onSubmit={handleAddKcal} />
           </div>
 
-          {/* Middle Column - Progress */}
           <div className="space-y-6">
             <LevelCard
               level={stats.level}
@@ -260,7 +696,9 @@ export default function Home() {
               goalReps={dailyGoal.reps}
               currentKcal={todayStats.activeKcal}
               goalKcal={dailyGoal.activeKcal}
-              onGoalChange={(reps, kcal) => setDailyGoal({ reps, activeKcal: kcal })}
+              onGoalChange={(reps, kcal) =>
+                setDailyGoal({ reps, activeKcal: kcal })
+              }
             />
             <NowPlaying
               accessToken={spotifyToken}
@@ -271,7 +709,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Right Column - Charts */}
           <div className="space-y-6">
             <WeeklyChart workouts={workouts} />
             <StatsCards
@@ -282,7 +719,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Achievements Section */}
         <div className="mt-8">
           <AchievementsGrid
             unlockedIds={stats.unlockedAchievements}
@@ -291,7 +727,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Achievement Popup */}
       {showAchievementPopup && currentAchievement && (
         <AchievementPopup
           achievement={currentAchievement}

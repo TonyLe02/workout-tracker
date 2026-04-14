@@ -1,7 +1,7 @@
 'use client';
 
 // Icons
-import { Award, Lock } from 'lucide-react';
+import { Award } from 'lucide-react';
 
 // Types/Interfaces
 import type { Achievement } from '@/types/workout';

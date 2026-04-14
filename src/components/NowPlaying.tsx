@@ -24,15 +24,11 @@ interface NowPlayingProps {
 
 export function NowPlaying({ accessToken, onConnect }: NowPlayingProps) {
   const [track, setTrack] = useState<SpotifyTrack | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
   const fetchTrack = useCallback(async () => {
     if (!accessToken) return;
-
-    setIsLoading(true);
     const currentTrack = await getCurrentlyPlaying(accessToken);
     setTrack(currentTrack);
-    setIsLoading(false);
   }, [accessToken]);
 
   useEffect(() => {

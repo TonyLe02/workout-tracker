@@ -7,14 +7,14 @@ import { useMemo } from 'react';
 import {
   AreaChart,
   Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
   BarChart,
   Bar,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 // Icons
 import { BarChart3 } from 'lucide-react';
@@ -24,6 +24,17 @@ import type { WorkoutEntry } from '@/types/workout';
 
 interface WeeklyChartProps {
   workouts: WorkoutEntry[];
+}
+
+interface TooltipEntry {
+  name: string;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
 }
 
 export function WeeklyChart({ workouts }: WeeklyChartProps) {
@@ -45,12 +56,12 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
     return last7Days;
   }, [workouts]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-surface/95 backdrop-blur-xl rounded-lg p-3 border border-white/10">
           <p className="text-text-secondary text-sm mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <p
               key={index}
               className="text-sm font-semibold text-white"

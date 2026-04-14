@@ -48,13 +48,12 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass rounded-lg p-3 border border-border">
+        <div className="bg-surface/95 backdrop-blur-xl rounded-lg p-3 border border-white/10">
           <p className="text-text-secondary text-sm mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p
               key={index}
-              className="text-sm font-semibold"
-              style={{ color: entry.color }}
+              className="text-sm font-semibold text-white"
             >
               {entry.name}: {entry.value.toLocaleString()}
             </p>
@@ -68,7 +67,7 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
   return (
     <div className="glass rounded-2xl p-6">
       <div className="flex items-center gap-2 mb-6">
-        <BarChart3 className="w-5 h-5 text-primary" />
+        <BarChart3 className="w-5 h-5 text-white" />
         <span className="text-sm text-text-secondary uppercase tracking-wider">
           Weekly Progress
         </span>
@@ -87,11 +86,11 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
                 tick={{ fill: '#a3a3a3', fontSize: 12 }}
               />
               <YAxis hide />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
               <Bar
                 dataKey="reps"
                 name="Reps"
-                fill="#00d9ff"
+                fill="rgba(255,255,255,0.7)"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={40}
               />
@@ -108,8 +107,8 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="colorKcal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis
@@ -119,12 +118,12 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
                 tick={{ fill: '#a3a3a3', fontSize: 12 }}
               />
               <YAxis hide />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.2)' }} />
               <Area
                 type="monotone"
                 dataKey="activeKcal"
                 name="Active kcal"
-                stroke="#a855f7"
+                stroke="#f97316"
                 strokeWidth={2}
                 fill="url(#colorKcal)"
               />

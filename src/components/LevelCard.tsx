@@ -28,7 +28,7 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
               <span className="text-2xl font-bold text-white">{level}</span>
             </div>
             {isLevelUp && (
@@ -47,7 +47,7 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
             <TrendingUp className="w-4 h-4" />
             Total XP
           </div>
-          <div className="text-2xl font-bold text-primary font-mono">
+          <div className="text-2xl font-bold text-secondary font-mono">
             {totalXP.toLocaleString()}
           </div>
         </div>
@@ -61,7 +61,7 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
         </div>
         <div className="h-3 bg-surface-hover rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-500"
+            className="h-full bg-secondary rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>

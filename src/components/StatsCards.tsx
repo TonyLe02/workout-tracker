@@ -15,8 +15,8 @@ export function StatsCards({ totalReps, totalActiveKcal, totalWorkouts }: StatsC
       label: 'Total Reps',
       value: totalReps.toLocaleString(),
       icon: Hash,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
+      color: 'text-white',
+      bgColor: 'bg-white/10',
     },
     {
       label: 'Active kcal Burned',
@@ -29,8 +29,8 @@ export function StatsCards({ totalReps, totalActiveKcal, totalWorkouts }: StatsC
       label: 'Total Workouts',
       value: totalWorkouts.toLocaleString(),
       icon: Calendar,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
+      color: 'text-white',
+      bgColor: 'bg-white/10',
     },
   ];
 

@@ -87,7 +87,7 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
           </span>
         </div>
         <div className="text-sm text-text-secondary">
-          <span className="text-primary font-semibold">{unlockedCount}</span>
+          <span className="text-white font-semibold">{unlockedCount}</span>
           <span> / {totalCount}</span>
         </div>
       </div>

@@ -72,7 +72,7 @@ export function Calculator({ onSubmit, label = 'REPS' }: CalculatorProps) {
       </div>
 
       {/* Keypad */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 sm:gap-2">
         {buttons.map((btn) => (
           <button
             key={btn}
@@ -82,7 +82,7 @@ export function Calculator({ onSubmit, label = 'REPS' }: CalculatorProps) {
               else handleNumber(btn);
             }}
             className={`
-              h-14 rounded-xl font-semibold text-xl
+              h-12 sm:h-14 rounded-xl font-semibold text-lg sm:text-xl
               transition-all duration-150 active:scale-95
               ${
                 btn === 'C'
@@ -109,13 +109,13 @@ export function Calculator({ onSubmit, label = 'REPS' }: CalculatorProps) {
         onClick={handleAdd}
         disabled={display === '0'}
         className={`
-          w-full mt-4 h-14 rounded-xl font-bold text-lg
+          w-full mt-4 h-12 sm:h-14 rounded-xl font-bold text-base sm:text-lg
           flex items-center justify-center gap-2
           transition-all duration-200
           ${
             display === '0'
               ? 'bg-surface-hover/30 text-muted cursor-not-allowed'
-              : 'bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 active:scale-[0.98]'
+              : 'bg-white text-background font-bold hover:bg-white/90 active:scale-[0.98]'
           }
         `}
       >

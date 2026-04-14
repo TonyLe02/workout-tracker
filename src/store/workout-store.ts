@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { format, isYesterday, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays } from 'date-fns';
 
 import { ACHIEVEMENTS } from '@/data/achievements';
 
@@ -8,7 +8,6 @@ import type { WorkoutEntry, UserStats, DailyGoal } from '@/types/workout';
 import {
   XP_PER_REP,
   XP_PER_ACTIVE_KCAL,
-  XP_STREAK_MULTIPLIER,
   calculateLevel,
 } from '@/types/workout';
 
@@ -42,7 +41,7 @@ const DEFAULT_STATS: UserStats = {
 };
 
 const DEFAULT_GOAL: DailyGoal = {
-  reps: 100,
+  reps: 400,
   activeKcal: 300,
 };
 
@@ -62,41 +61,25 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set((state) => {
           const newWorkouts = [...state.workouts, workout];
 
-          // Calculate XP earned
-          const streakMultiplier = Math.min(
-            state.stats.currentStreak * XP_STREAK_MULTIPLIER,
-            1
-          );
-          const baseXP =
+          // Calculate XP earned (simple: 1 XP per rep, 0.5 per kcal)
+          const xpEarned = Math.round(
             workout.reps * XP_PER_REP +
-            workout.activeKcal * XP_PER_ACTIVE_KCAL;
-          const xpEarned = Math.round(baseXP * (1 + streakMultiplier));
+            workout.activeKcal * XP_PER_ACTIVE_KCAL
+          );
 
-          // Update streak
-          let newStreak = state.stats.currentStreak;
           const today = format(new Date(), 'yyyy-MM-dd');
-          const lastDate = state.stats.lastWorkoutDate;
 
-          if (!lastDate) {
-            newStreak = 1;
-          } else if (lastDate === today) {
-            // Same day, no streak change
-          } else if (isYesterday(parseISO(lastDate))) {
-            newStreak = state.stats.currentStreak + 1;
-          } else {
-            // Streak broken
-            newStreak = 1;
-          }
+          // Count unique workout days
+          const existingDates = new Set(state.workouts.map(w => w.date));
+          const isNewDay = !existingDates.has(today);
 
           const newStats: UserStats = {
             ...state.stats,
             totalXP: state.stats.totalXP + xpEarned,
             level: calculateLevel(state.stats.totalXP + xpEarned),
-            currentStreak: newStreak,
-            longestStreak: Math.max(state.stats.longestStreak, newStreak),
             totalReps: state.stats.totalReps + workout.reps,
             totalActiveKcal: state.stats.totalActiveKcal + workout.activeKcal,
-            totalWorkouts: state.stats.totalWorkouts + 1,
+            totalWorkouts: isNewDay ? state.stats.totalWorkouts + 1 : state.stats.totalWorkouts,
             lastWorkoutDate: today,
           };
 

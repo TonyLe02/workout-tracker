@@ -1,7 +1,7 @@
 # Workout Tracker 💪
 
-A gamified workout tracker with a calculator-style rep counter, heart rate calorie tracking, and progression system. Built with a clean, dark glassy UI.
-
+A gamified workout tracker with a calculator-style rep counter, heart rate calorie tracking, and progression system. Built with a clean, dark glassy UI. Find it here
+https://workout-tracker-two-kappa.vercel.app/
 ## Features
 
 - **Calculator Rep Counter** - Numpad-style input for counting reps

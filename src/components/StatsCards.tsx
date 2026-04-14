@@ -1,0 +1,57 @@
+'use client';
+
+// Icons
+import { Activity, Flame, Hash, Calendar } from 'lucide-react';
+
+interface StatsCardsProps {
+  totalReps: number;
+  totalActiveKcal: number;
+  totalWorkouts: number;
+}
+
+export function StatsCards({ totalReps, totalActiveKcal, totalWorkouts }: StatsCardsProps) {
+  const stats = [
+    {
+      label: 'Total Reps',
+      value: totalReps.toLocaleString(),
+      icon: Hash,
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
+    },
+    {
+      label: 'Active kcal Burned',
+      value: totalActiveKcal.toLocaleString(),
+      icon: Flame,
+      color: 'text-secondary',
+      bgColor: 'bg-secondary/10',
+    },
+    {
+      label: 'Total Workouts',
+      value: totalWorkouts.toLocaleString(),
+      icon: Calendar,
+      color: 'text-success',
+      bgColor: 'bg-success/10',
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {stats.map((stat) => (
+        <div
+          key={stat.label}
+          className="glass rounded-xl p-4 text-center"
+        >
+          <div className={`inline-flex p-2 rounded-lg ${stat.bgColor} mb-2`}>
+            <stat.icon className={`w-5 h-5 ${stat.color}`} />
+          </div>
+          <div className="text-2xl font-bold text-text-primary mb-1">
+            {stat.value}
+          </div>
+          <div className="text-xs text-text-secondary">
+            {stat.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 'use client';
 
 // Icons
-import { Star, TrendingUp } from 'lucide-react';
+import { BicepsFlexed, Star } from 'lucide-react';
 
 // Types/Interfaces
 import { getLevelTitle, getXPForNextLevel, getCurrentLevelXP } from '@/types/workout';
@@ -44,10 +44,10 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
         </div>
         <div className="text-right">
           <div className="flex items-center gap-1 text-text-secondary text-sm">
-            <TrendingUp className="w-4 h-4" />
+            <BicepsFlexed className="w-4 h-4" />
             Total XP
           </div>
-          <div className="text-2xl font-bold text-secondary font-mono">
+          <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500 font-mono">
             {totalXP.toLocaleString()}
           </div>
         </div>
@@ -61,7 +61,7 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
         </div>
         <div className="h-3 bg-surface-hover rounded-full overflow-hidden">
           <div
-            className="h-full bg-secondary rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>

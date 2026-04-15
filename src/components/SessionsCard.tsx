@@ -1,7 +1,7 @@
 'use client';
 
 // Icons
-import { Calendar, Hash } from 'lucide-react';
+import { Calendar, WeightTilde } from 'lucide-react';
 
 interface SessionsCardProps {
   totalSessions: number;
@@ -35,7 +35,7 @@ export function SessionsCard({ totalSessions, totalReps }: SessionsCardProps) {
         {/* Avg Reps */}
         <div className="text-right">
           <div className="flex items-center gap-1 text-text-secondary text-sm justify-end">
-            <Hash className="w-4 h-4" />
+            <WeightTilde className="w-4 h-4" />
             Avg reps/session
           </div>
           <div className="text-2xl font-bold text-white">

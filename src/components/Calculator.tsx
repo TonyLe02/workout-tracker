@@ -11,7 +11,7 @@ interface CalculatorProps {
   label?: string;
 }
 
-export function Calculator({ onSubmit, label = 'REPS' }: CalculatorProps) {
+export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) {
   const [display, setDisplay] = useState('0');
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -86,9 +86,7 @@ export function Calculator({ onSubmit, label = 'REPS' }: CalculatorProps) {
               transition-all duration-150 active:scale-95
               ${
                 btn === 'C'
-                  ? 'bg-danger/20 text-danger hover:bg-danger/30'
-                  : btn === '⌫'
-                  ? 'bg-warning/20 text-warning hover:bg-warning/30'
+                  ? 'bg-surface-hover/50 text-danger hover:bg-surface-hover'
                   : 'bg-surface-hover/50 text-text-primary hover:bg-surface-hover'
               }
             `}
@@ -120,7 +118,7 @@ export function Calculator({ onSubmit, label = 'REPS' }: CalculatorProps) {
         `}
       >
         <Plus className="w-5 h-5" />
-        ADD REPS
+        ADD COUNT
       </button>
     </div>
   );

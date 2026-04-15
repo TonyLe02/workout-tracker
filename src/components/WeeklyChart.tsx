@@ -1,7 +1,7 @@
 'use client';
 
 // React/Next.js
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 // External libraries
 import {
@@ -14,7 +14,14 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { format, subDays } from 'date-fns';
+import {
+  format,
+  subDays,
+  startOfMonth,
+  endOfMonth,
+  eachMonthOfInterval,
+  startOfYear,
+} from 'date-fns';
 
 // Icons
 import { BarChart3 } from 'lucide-react';
@@ -22,7 +29,9 @@ import { BarChart3 } from 'lucide-react';
 // Types/Interfaces
 import type { WorkoutEntry } from '@/types/workout';
 
-interface WeeklyChartProps {
+type TimeRange = 'week' | 'month' | 'year';
+
+interface ProgressChartProps {
   workouts: WorkoutEntry[];
 }
 
@@ -37,24 +46,89 @@ interface CustomTooltipProps {
   label?: string;
 }
 
-export function WeeklyChart({ workouts }: WeeklyChartProps) {
+export function WeeklyChart({ workouts }: ProgressChartProps) {
+  const [timeRange, setTimeRange] = useState<TimeRange>('week');
+
   const chartData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = subDays(new Date(), 6 - i);
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const dayWorkouts = workouts.filter((w) => w.date === dateStr);
+    const now = new Date();
+
+    if (timeRange === 'week') {
+      return Array.from({ length: 7 }, (_, i) => {
+        const date = subDays(now, 6 - i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const dayWorkouts = workouts.filter((w) => w.date === dateStr);
+
+        const activeSum = dayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0);
+        const latestTotal = dayWorkouts
+          .filter((w) => w.totalKcal > 0)
+          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
+
+        return {
+          date: dateStr,
+          label: format(date, 'EEE'),
+          reps: dayWorkouts.reduce((sum, w) => sum + w.reps, 0),
+          kcal: Math.max(activeSum, latestTotal),
+        };
+      });
+    }
+
+    if (timeRange === 'month') {
+      return Array.from({ length: 30 }, (_, i) => {
+        const date = subDays(now, 29 - i);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const dayWorkouts = workouts.filter((w) => w.date === dateStr);
+
+        const activeSum = dayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0);
+        const latestTotal = dayWorkouts
+          .filter((w) => w.totalKcal > 0)
+          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
+
+        return {
+          date: dateStr,
+          label: format(date, 'd'),
+          reps: dayWorkouts.reduce((sum, w) => sum + w.reps, 0),
+          kcal: Math.max(activeSum, latestTotal),
+        };
+      });
+    }
+
+    // Yearly view - aggregate by month
+    const yearStart = startOfYear(now);
+    const months = eachMonthOfInterval({ start: yearStart, end: now });
+
+    return months.map((monthDate) => {
+      const monthStart = startOfMonth(monthDate);
+      const monthEnd = endOfMonth(monthDate);
+      const monthWorkouts = workouts.filter((w) => {
+        const wDate = new Date(w.date);
+        return wDate >= monthStart && wDate <= monthEnd;
+      });
+
+      // Group by date within the month and calculate per-day kcal
+      const byDate: Record<string, typeof monthWorkouts> = {};
+      for (const w of monthWorkouts) {
+        if (!byDate[w.date]) byDate[w.date] = [];
+        byDate[w.date].push(w);
+      }
+
+      let monthKcal = 0;
+      for (const date of Object.keys(byDate)) {
+        const dayWorkouts = byDate[date];
+        const activeSum = dayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0);
+        const latestTotal = dayWorkouts
+          .filter((w) => w.totalKcal > 0)
+          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
+        monthKcal += Math.max(activeSum, latestTotal);
+      }
 
       return {
-        date: dateStr,
-        day: format(date, 'EEE'),
-        reps: dayWorkouts.reduce((sum, w) => sum + w.reps, 0),
-        activeKcal: dayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0),
-        totalKcal: dayWorkouts.reduce((sum, w) => sum + w.totalKcal, 0),
+        date: format(monthDate, 'yyyy-MM'),
+        label: format(monthDate, 'MMM'),
+        reps: monthWorkouts.reduce((sum, w) => sum + w.reps, 0),
+        kcal: monthKcal,
       };
     });
-
-    return last7Days;
-  }, [workouts]);
+  }, [workouts, timeRange]);
 
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
@@ -75,13 +149,36 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
     return null;
   };
 
+  const rangeLabels: Record<TimeRange, string> = {
+    week: 'Weekly',
+    month: 'Monthly',
+    year: 'Yearly',
+  };
+
   return (
     <div className="glass rounded-2xl p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <BarChart3 className="w-5 h-5 text-white" />
-        <span className="text-sm text-text-secondary uppercase tracking-wider">
-          Weekly Progress
-        </span>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <span className="text-xs text-text-secondary uppercase tracking-wider">
+            {rangeLabels[timeRange]} Progress
+          </span>
+        </div>
+        <div className="flex gap-1 bg-surface-hover/50 rounded-lg p-1">
+          {(['week', 'month', 'year'] as TimeRange[]).map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-2 py-1 text-xs rounded-md transition-all ${
+                timeRange === range
+                  ? 'bg-white/10 text-white'
+                  : 'text-text-secondary hover:text-white'
+              }`}
+            >
+              {range === 'week' ? '7D' : range === 'month' ? '30D' : '1Y'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Reps Chart */}
@@ -91,17 +188,18 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <XAxis
-                dataKey="day"
+                dataKey="label"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#a3a3a3', fontSize: 12 }}
+                tick={{ fill: '#a3a3a3', fontSize: 10 }}
+                interval={timeRange === 'month' ? 4 : 0}
               />
               <YAxis hide />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.1)' }} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.08)' }} />
               <Bar
                 dataKey="reps"
                 name="Reps"
-                fill="rgba(255,255,255,0.7)"
+                fill="rgba(34,197,94,0.8)"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={40}
               />
@@ -112,7 +210,7 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
 
       {/* Calories Chart */}
       <div>
-        <div className="text-xs text-text-secondary mb-2">Active Calories</div>
+        <div className="text-xs text-text-secondary mb-2">Total Calories</div>
         <div className="h-32">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
@@ -123,17 +221,18 @@ export function WeeklyChart({ workouts }: WeeklyChartProps) {
                 </linearGradient>
               </defs>
               <XAxis
-                dataKey="day"
+                dataKey="label"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#a3a3a3', fontSize: 12 }}
+                tick={{ fill: '#a3a3a3', fontSize: 10 }}
+                interval={timeRange === 'month' ? 4 : 0}
               />
               <YAxis hide />
               <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.2)' }} />
               <Area
                 type="monotone"
-                dataKey="activeKcal"
-                name="Active kcal"
+                dataKey="kcal"
+                name="Total kcal"
                 stroke="#f97316"
                 strokeWidth={2}
                 fill="url(#colorKcal)"

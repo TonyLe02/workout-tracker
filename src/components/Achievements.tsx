@@ -1,7 +1,10 @@
 'use client';
 
+// React/Next.js
+import { useState } from 'react';
+
 // Icons
-import { Award } from 'lucide-react';
+import { Award, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Types/Interfaces
 import type { Achievement } from '@/types/workout';
@@ -64,12 +67,14 @@ interface AchievementsGridProps {
 }
 
 export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: AchievementsGridProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   // Sort achievements: unlocked first, then by tier (diamond, gold, silver, bronze)
   const tierOrder = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
   const sortedAchievements = [...ACHIEVEMENTS].sort((a, b) => {
     const aUnlocked = unlockedIds.includes(a.id);
     const bUnlocked = unlockedIds.includes(b.id);
-    
+
     if (aUnlocked !== bUnlocked) return bUnlocked ? 1 : -1;
     return tierOrder[a.tier] - tierOrder[b.tier];
   });
@@ -79,21 +84,31 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
 
   return (
     <div className="glass rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between mb-4 cursor-pointer"
+      >
         <div className="flex items-center gap-2">
           <Award className="w-5 h-5 text-yellow-500" />
           <span className="text-sm text-text-secondary uppercase tracking-wider">
             Achievements
           </span>
         </div>
-        <div className="text-sm text-text-secondary">
-          <span className="text-white font-semibold">{unlockedCount}</span>
-          <span> / {totalCount}</span>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-text-secondary">
+            <span className="text-white font-semibold">{unlockedCount}</span>
+            <span> / {totalCount}</span>
+          </div>
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5 text-text-secondary" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-text-secondary" />
+          )}
         </div>
-      </div>
+      </button>
 
       {/* Progress Bar */}
-      <div className="h-2 bg-surface-hover rounded-full overflow-hidden mb-6">
+      <div className="h-2 bg-surface-hover rounded-full overflow-hidden mb-4">
         <div
           className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full transition-all duration-500"
           style={{ width: `${(unlockedCount / totalCount) * 100}%` }}
@@ -101,16 +116,18 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
       </div>
 
       {/* Achievement Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        {sortedAchievements.map((achievement) => (
-          <AchievementBadge
-            key={achievement.id}
-            achievement={achievement}
-            unlocked={unlockedIds.includes(achievement.id)}
-            isNew={newAchievementIds.includes(achievement.id)}
-          />
-        ))}
-      </div>
+      {isExpanded && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
+          {sortedAchievements.map((achievement) => (
+            <AchievementBadge
+              key={achievement.id}
+              achievement={achievement}
+              unlocked={unlockedIds.includes(achievement.id)}
+              isNew={newAchievementIds.includes(achievement.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

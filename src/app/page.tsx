@@ -23,6 +23,7 @@ import { StatsCards } from '@/components/StatsCards';
 import { WeeklyChart } from '@/components/WeeklyChart';
 
 // Utils/Helpers
+import { secureGet } from '@/lib/secure-storage';
 import { getSpotifyAuthUrl } from '@/lib/spotify';
 import {
   fetchProfile,
@@ -41,7 +42,7 @@ import { ACHIEVEMENTS } from '@/data/achievements';
 import type { DailyGoal, WorkoutEntry } from '@/types/workout';
 
 // Icons
-import { Check, Cloud, Dumbbell, Loader2, LogOut } from 'lucide-react';
+import { Cloud, CloudCheck, Dumbbell, Loader2, LogOut } from 'lucide-react';
 
 type SyncStatus = 'local' | 'syncing' | 'synced' | 'error';
 
@@ -125,6 +126,8 @@ export default function Home() {
   const [welcomeName, setWelcomeName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasHydratedRemoteDataRef = useRef(false);
+  const isManualSyncingRef = useRef(false);
+  const lastSyncTimeRef = useRef(0);
 
   const {
     workouts,
@@ -141,13 +144,15 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
 
-    const spotifyAccessToken = localStorage.getItem('spotify_access_token');
     const localName = localStorage.getItem('user_name')?.trim() ?? '';
     const localProfileImage = localStorage.getItem('profile_image');
 
-    if (spotifyAccessToken) {
-      setSpotifyToken(spotifyAccessToken);
-    }
+    // Load encrypted Spotify token
+    secureGet('spotify_access_token').then((token) => {
+      if (token) {
+        setSpotifyToken(token);
+      }
+    });
 
     if (localName) {
       setUserName(localName);
@@ -175,7 +180,7 @@ export default function Home() {
 
         setAuthUser(currentUser);
 
-        if (!currentUser && !localName) {
+        if (!localName) {
           setShowWelcome(true);
         }
       } finally {
@@ -197,9 +202,8 @@ export default function Home() {
       setAuthReady(true);
 
       if (!nextUser) {
-        const savedName = localStorage.getItem('user_name')?.trim() ?? '';
-        setShowWelcome(!savedName);
         setSyncStatus('local');
+        setShowWelcome(true);
       }
     });
 
@@ -328,10 +332,20 @@ export default function Home() {
       return;
     }
 
-    const syncTimeout = window.setTimeout(async () => {
-      try {
-        setSyncStatus('syncing');
+    // Skip auto-sync if manual refetch is in progress
+    if (isManualSyncingRef.current) {
+      return;
+    }
 
+    const syncTimeout = window.setTimeout(async () => {
+      // Skip if manual sync in progress or synced very recently
+      if (isManualSyncingRef.current || Date.now() - lastSyncTimeRef.current < 2000) {
+        return;
+      }
+
+      setSyncStatus('syncing');
+
+      try {
         await Promise.all([
           upsertProfile(authUser.id, {
             name: userName.trim(),
@@ -464,6 +478,44 @@ export default function Home() {
     }
   };
 
+  const handleManualRefetch = async () => {
+    if (!authUser || isManualSyncingRef.current) return;
+
+    isManualSyncingRef.current = true;
+    setSyncStatus('syncing');
+
+    try {
+      const [remoteProfile, remoteWorkouts] = await Promise.all([
+        fetchProfile(authUser.id),
+        fetchWorkouts(authUser.id),
+      ]);
+
+      const localState = useWorkoutStore.getState();
+      const mergedWorkouts = mergeWorkouts(localState.workouts, remoteWorkouts);
+      const mergedDailyGoal: DailyGoal = {
+        reps: remoteProfile?.daily_goal_reps ?? localState.dailyGoal.reps,
+        activeKcal:
+          remoteProfile?.daily_goal_active_kcal ?? localState.dailyGoal.activeKcal,
+      };
+
+      hydrateData({
+        workouts: mergedWorkouts,
+        dailyGoal: mergedDailyGoal,
+      });
+
+      lastSyncTimeRef.current = Date.now();
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Failed to refetch data from Supabase:', error);
+      setSyncStatus('error');
+    } finally {
+      // Delay clearing the flag so the auto-sync useEffect skips
+      setTimeout(() => {
+        isManualSyncingRef.current = false;
+      }, 1000);
+    }
+  };
+
   if (!mounted || !authReady) {
     return (
       <main className="min-h-screen bg-background">
@@ -505,8 +557,8 @@ export default function Home() {
               Welcome to Workout Tracker
             </h1>
             <p className="text-text-secondary mb-6">
-              Choose a name for your tracker. You can keep it local or sync it
-              with Google later.
+              Enter your name to get started. You can sync with Google later to
+              access your data across devices.
             </p>
 
             <input
@@ -532,16 +584,6 @@ export default function Home() {
             >
               Let&apos;s Go
             </button>
-
-            {isSupabaseConfigured && (
-              <button
-                onClick={handleGoogleSignIn}
-                className="w-full mt-3 py-3 rounded-xl font-medium text-sm border border-white/20 text-white bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-              >
-                <Cloud className="w-4 h-4" />
-                Continue with Google
-              </button>
-            )}
           </div>
         </div>
       </main>
@@ -559,20 +601,12 @@ export default function Home() {
       />
       <div className="fixed inset-0 bg-background/50 pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-4 py-8">
-        <header className="flex items-start justify-between mb-8 gap-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-              <Dumbbell className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-2xl font-bold text-text-primary">
-                Workout Tracker
-              </h1>
-              <p className="hidden sm:block text-sm text-text-secondary">
-                Let&apos;s crush it today
-              </p>
-            </div>
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-4 py-8">
+        <header className="flex items-end justify-between mb-8 gap-4">
+          <div className="flex items-end">
+            <h1 className="text-lg sm:text-2xl font-bold text-white">
+              Let&apos;s crush it!
+            </h1>
           </div>
 
           <div className="flex items-center gap-3 sm:gap-4">
@@ -612,21 +646,31 @@ export default function Home() {
                 {format(new Date(), 'EEEE, MMMM d')}
               </p>
 
-              <div className="mt-1 flex items-center justify-end gap-2">
+              <div className="flex items-center justify-end gap-1.5 sm:gap-2 whitespace-nowrap">
                 {syncStatus !== 'local' && (
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wide">
+                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wide inline-flex items-center gap-1">
                     {syncStatus === 'syncing' ? (
-                      <span className="inline-flex items-center gap-1 text-text-secondary">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        Syncing
-                      </span>
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin text-text-secondary" />
+                        <span className="text-text-secondary">Syncing</span>
+                      </>
                     ) : syncStatus === 'synced' ? (
-                      <span className="inline-flex items-center gap-1 text-white/70 hover:text-green-400 transition-colors cursor-default">
-                        <Check className="w-3 h-3" />
-                        Synced
-                      </span>
+                      <button
+                        onClick={handleManualRefetch}
+                        className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity"
+                        title="Click to refresh data from cloud"
+                      >
+                        <CloudCheck className="w-3 h-3 text-green-400" />
+                        <span className="text-green-400">Synced</span>
+                      </button>
                     ) : (
-                      <span className="text-red-400">Sync error</span>
+                      <button
+                        onClick={handleManualRefetch}
+                        className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity"
+                        title="Click to retry sync"
+                      >
+                        <span className="text-red-400">Sync error</span>
+                      </button>
                     )}
                   </span>
                 )}
@@ -639,7 +683,7 @@ export default function Home() {
                       title="Sign out of Google sync"
                     >
                       <LogOut className="w-3 h-3" />
-                      <span>Sign out</span>
+                      Sign out
                     </button>
                   ) : (
                     <button
@@ -694,7 +738,7 @@ export default function Home() {
             <DailyGoals
               currentReps={todayStats.reps}
               goalReps={dailyGoal.reps}
-              currentKcal={todayStats.activeKcal}
+              currentKcal={todayStats.kcal}
               goalKcal={dailyGoal.activeKcal}
               onGoalChange={(reps, kcal) =>
                 setDailyGoal({ reps, activeKcal: kcal })

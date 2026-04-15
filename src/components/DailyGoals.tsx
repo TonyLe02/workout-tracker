@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { ProgressRing } from './ProgressRing';
 
 // Icons
-import { Target, Zap, Settings, Check } from 'lucide-react';
+import { Check, Dumbbell, Flame, Settings, Target } from 'lucide-react';
 
 interface DailyGoalsProps {
   currentReps: number;
@@ -82,7 +82,7 @@ export function DailyGoals({
             />
           </div>
           <div>
-            <label className="text-xs text-text-secondary mb-1 block">Active kcal Goal</label>
+            <label className="text-xs text-text-secondary mb-1 block">Total kcal Goal</label>
             <input
               type="number"
               value={editKcal}
@@ -100,7 +100,8 @@ export function DailyGoals({
             progress={repsProgress}
             size={100}
             strokeWidth={8}
-            color={repsComplete ? '#22c55e' : '#ffffff'}
+            color={repsComplete ? '#22c55e' : undefined}
+            useGradient={!repsComplete}
           >
             <div className="text-center">
               <div className="text-2xl font-bold text-text-primary">
@@ -110,7 +111,7 @@ export function DailyGoals({
             </div>
           </ProgressRing>
           <div className="mt-3 flex items-center gap-1 text-sm text-text-secondary">
-            <Target className="w-4 h-4" />
+            <Dumbbell className="w-4 h-4 text-orange-500" />
             Reps
           </div>
           {repsComplete && (
@@ -124,7 +125,8 @@ export function DailyGoals({
             progress={kcalProgress}
             size={100}
             strokeWidth={8}
-            color={kcalComplete ? '#22c55e' : '#f97316'}
+            color={kcalComplete ? '#22c55e' : undefined}
+            useGradient={!kcalComplete}
           >
             <div className="text-center">
               <div className="text-2xl font-bold text-text-primary">
@@ -134,8 +136,8 @@ export function DailyGoals({
             </div>
           </ProgressRing>
           <div className="mt-3 flex items-center gap-1 text-sm text-text-secondary">
-            <Zap className="w-4 h-4" />
-            Active kcal
+            <Flame className="w-4 h-4 text-orange-500" />
+            Total kcal
           </div>
           {kcalComplete && (
             <div className="text-xs text-success mt-1">Complete!</div>

@@ -1,75 +1,31 @@
-# Workout Tracker 💪
+# Workout Tracker
 
-A gamified workout tracker with a calculator-style rep counter, heart rate calorie tracking, and progression system. Built with a clean, dark glassy UI. Find it here
-https://workout-tracker-two-kappa.vercel.app/
-## Features
+### Level Up Your Workout
 
-- **Calculator Rep Counter** - Numpad-style input for counting reps
-- **Heart Rate Calories** - Manual input for active/total kcal from Airpods or fitness tracker
-- **XP & Leveling System** - Earn XP from every rep and calorie burned
-- **Google Sync** - Sign in with Google to sync workouts across desktop and phone
-- **Session Tracking** - Track total workout sessions and average reps per session
-- **Adjustable Daily Goals** - Set your own rep and calorie targets
-- **35+ Achievements** - Unlock badges across bronze, silver, gold, and diamond tiers
-- **Progress Rings** - Visual daily goal tracking
-- **Weekly Charts** - See your reps and calories over the past 7 days
-- **Dark Glassy UI** - Clean grey/white design with glassmorphism and orange accents
+<img width="1920" height="919" alt="bilde" src="https://github.com/user-attachments/assets/3f46aeb1-2511-4db5-846d-fad82d009ace" />
 
-## Prerequisites
+## Why?
 
-### Spotify Integration (Optional)
+I lose count. "Was that 40 or 50 reps?" I don't care about sets or complicated workout plans - I just want to know my total reps at the end of the day.
 
-To enable Spotify Now Playing with playback controls:
+So I built this. A simple rep counter with gamification to make it fun and addicting.
 
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create a new app
-3. Add `http://127.0.0.1:8000/callback` as a Redirect URI in your app settings
-4. Copy your Client ID
-5. Create a `.env.local` file in the project root:
+**Try it:** https://workout-tracker-two-kappa.vercel.app/
 
-```env
-NEXT_PUBLIC_SPOTIFY_CLIENT_ID=your_client_id_here
-```
+## What It Does
 
-### Supabase + Google Auth (Optional)
+- **Count reps** - Calculator-style numpad, punch in your number, done
+- **Track calories** - Log kcal from your fitness tracker
+- **See your progress** - Daily goals, weekly charts, total stats
+- **Level up** - XP system, 35+ achievements, unlock tiers from Bronze to Diamond
 
-To sync workouts across devices:
+That's it. Simple.
 
-1. Create a Supabase project
-2. Enable **Google** under **Authentication > Providers**
-3. Add your app URL(s) to Supabase redirect URLs
-4. Run the SQL in `supabase/schema.sql` in the Supabase SQL editor
-5. Add these values to `.env.local`:
+## How It Works
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
-```
-
-Do not use your Supabase secret key in the frontend app.
-
-## Getting Started
-
-```bash
-# Install dependencies
-npm install
-
-# Run development server (port 8000 for Spotify callback)
-npm run dev
-```
-
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
-
-## Tech Stack
-
-- **Next.js 14** - React framework
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **Zustand** - State management with localStorage fallback
-- **Recharts** - Charts and visualizations
-- **Lucide React** - Icons
-- **date-fns** - Date utilities
-- **Supabase** - Google auth and synced cloud storage
+- **Sign in with Google** to sync your data across devices
+- **Without sign in** your data stays on that device only
+- **Spotify widget** - Admin only (requires whitelist, RIP users)
 
 ## XP System
 
@@ -104,4 +60,3 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
 ## Data Storage
 - **Signed out**: data stays in localStorage on that device
 - **Signed in with Google**: workouts, goals, name, and avatar sync through Supabase
-- **Spotify token**: still stays local per device

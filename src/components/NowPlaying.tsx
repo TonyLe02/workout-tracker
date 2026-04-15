@@ -43,18 +43,23 @@ export function NowPlaying({ accessToken, onConnect }: NowPlayingProps) {
   // Not connected
   if (!accessToken) {
     return (
-      <button
-        onClick={onConnect}
-        className="glass rounded-2xl p-4 w-full flex items-center gap-3 hover:bg-white/5 transition-colors"
-      >
-        <div className="w-12 h-12 rounded-lg bg-[#1DB954]/20 flex items-center justify-center">
-          <Music className="w-6 h-6 text-[#1DB954]" />
-        </div>
-        <div className="text-left">
-          <div className="text-sm text-text-secondary">Connect</div>
-          <div className="text-white font-medium">Spotify</div>
-        </div>
-      </button>
+      <div className="glass rounded-2xl p-4">
+        <button
+          onClick={onConnect}
+          className="w-full flex items-center gap-3 hover:bg-white/5 transition-colors rounded-lg p-1 -m-1"
+        >
+          <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
+            <Music className="w-6 h-6 text-[#1DB954]" />
+          </div>
+          <div className="text-left flex-1">
+            <div className="text-sm text-text-secondary">Connect</div>
+            <div className="text-white font-medium">Spotify</div>
+            <p className="text-[10px] text-text-secondary/60 mt-1">
+              Requires whitelist access (limited to 5 users)
+            </p>
+          </div>
+        </button>
+      </div>
     );
   }
 

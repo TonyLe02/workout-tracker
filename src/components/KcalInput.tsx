@@ -30,7 +30,7 @@ export function KcalInput({ onSubmit }: KcalInputProps) {
   return (
     <div className="glass rounded-2xl p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Heart className="w-5 h-5 text-secondary" fill="currentColor" />
+        <Heart className="w-5 h-5 text-red-500" fill="currentColor" />
         <span className="text-sm text-text-secondary uppercase tracking-wider">
           Heart Rate Calories
         </span>
@@ -40,7 +40,7 @@ export function KcalInput({ onSubmit }: KcalInputProps) {
         {/* Active Calories */}
         <div>
           <label className="flex items-center gap-2 text-xs text-text-secondary mb-2">
-            <Zap className="w-4 h-4 text-secondary" />
+            <Zap className="w-4 h-4 text-yellow-500" />
             Active kcal
           </label>
           <input
@@ -62,7 +62,7 @@ export function KcalInput({ onSubmit }: KcalInputProps) {
         {/* Total Calories */}
         <div>
           <label className="flex items-center gap-2 text-xs text-text-secondary mb-2">
-            <Flame className="w-4 h-4 text-secondary" />
+            <Flame className="w-4 h-4 text-orange-500" />
             Total kcal (end of day)
           </label>
           <input
@@ -93,7 +93,7 @@ export function KcalInput({ onSubmit }: KcalInputProps) {
           ${
             !isValid
               ? 'bg-surface-hover/30 text-muted cursor-not-allowed'
-              : 'bg-secondary text-white hover:opacity-90 active:scale-[0.98]'
+              : 'bg-red-500 text-white hover:opacity-90 active:scale-[0.98]'
           }
         `}
       >

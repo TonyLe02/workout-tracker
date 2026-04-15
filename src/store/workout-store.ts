@@ -26,7 +26,7 @@ interface WorkoutStore {
   clearNewAchievements: () => void;
   getWorkoutsForDate: (date: string) => WorkoutEntry[];
   getWorkoutsForWeek: () => WorkoutEntry[];
-  getTodayStats: () => { reps: number; activeKcal: number; totalKcal: number };
+  getTodayStats: () => { reps: number; activeKcal: number; totalKcal: number; kcal: number };
 }
 
 const DEFAULT_STATS: UserStats = {
@@ -48,12 +48,29 @@ const DEFAULT_GOAL: DailyGoal = {
 
 function calculateStatsFromWorkouts(workouts: WorkoutEntry[]): UserStats {
   const totalReps = workouts.reduce((sum, workout) => sum + workout.reps, 0);
-  const totalActiveKcal = workouts.reduce(
-    (sum, workout) => sum + workout.activeKcal,
-    0
-  );
+
+  // Group workouts by date and calculate kcal per day using max(activeSum, latestTotal)
+  const workoutsByDate: Record<string, WorkoutEntry[]> = {};
+  for (const workout of workouts) {
+    if (!workoutsByDate[workout.date]) workoutsByDate[workout.date] = [];
+    workoutsByDate[workout.date].push(workout);
+  }
+
+  let totalKcal = 0;
+  for (const date of Object.keys(workoutsByDate)) {
+    const dayWorkouts = workoutsByDate[date];
+    // Get latest activeKcal for the day (upsert behavior, not accumulative)
+    const latestActive = dayWorkouts
+      .filter((w) => w.activeKcal > 0)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal || 0;
+    const latestTotal = dayWorkouts
+      .filter((w) => w.totalKcal > 0)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
+    totalKcal += Math.max(latestActive, latestTotal);
+  }
+
   const totalXP = Math.round(
-    totalReps * XP_PER_REP + totalActiveKcal * XP_PER_ACTIVE_KCAL
+    totalReps * XP_PER_REP + totalKcal * XP_PER_ACTIVE_KCAL
   );
   const workoutDates = new Set(workouts.map((workout) => workout.date));
   const lastWorkoutDate =
@@ -70,7 +87,7 @@ function calculateStatsFromWorkouts(workouts: WorkoutEntry[]): UserStats {
     totalXP,
     level: calculateLevel(totalXP),
     totalReps,
-    totalActiveKcal,
+    totalActiveKcal: totalKcal, // Now stores the calculated total (max of active vs end-of-day)
     totalWorkouts: workoutDates.size,
     lastWorkoutDate,
   };
@@ -164,10 +181,23 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const today = format(new Date(), 'yyyy-MM-dd');
         const todayWorkouts = get().workouts.filter((w) => w.date === today);
 
+        // Get the latest activeKcal entry for today (upsert behavior, not accumulative)
+        const latestActiveKcal = todayWorkouts
+          .filter((w) => w.activeKcal > 0)
+          .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal || 0;
+        // Get the latest totalKcal entry for today (end of day correction)
+        const latestTotalKcal = todayWorkouts
+          .filter((w) => w.totalKcal > 0)
+          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
+
+        // Total kcal is the max of latest active vs the end-of-day total
+        const kcal = Math.max(latestActiveKcal, latestTotalKcal);
+
         return {
           reps: todayWorkouts.reduce((sum, w) => sum + w.reps, 0),
-          activeKcal: todayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0),
-          totalKcal: todayWorkouts.reduce((sum, w) => sum + w.totalKcal, 0),
+          activeKcal: latestActiveKcal,
+          totalKcal: latestTotalKcal,
+          kcal, // The display value: max(activeKcal, totalKcal)
         };
       },
     }),

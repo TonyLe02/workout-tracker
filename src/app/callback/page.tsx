@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 // Utils/Helpers
 import { getCodeFromUrl, exchangeCodeForToken } from '@/lib/spotify';
+import { secureSet } from '@/lib/secure-storage';
 
 export default function CallbackPage() {
   const router = useRouter();
@@ -14,19 +15,19 @@ export default function CallbackPage() {
   useEffect(() => {
     async function handleCallback() {
       const code = getCodeFromUrl();
-      
+
       if (code) {
         setStatus('Exchanging code for token...');
         const token = await exchangeCodeForToken(code);
-        
+
         if (token) {
-          localStorage.setItem('spotify_access_token', token);
+          await secureSet('spotify_access_token', token);
           setStatus('Connected!');
         } else {
           setStatus('Failed to connect');
         }
       }
-      
+
       // Redirect to home after a short delay
       setTimeout(() => router.push('/'), 500);
     }

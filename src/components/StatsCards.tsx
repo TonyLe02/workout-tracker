@@ -1,7 +1,7 @@
 'use client';
 
 // Icons
-import { Calendar, Flame, Hash } from 'lucide-react';
+import { Calendar, Flame, Dumbbell } from 'lucide-react';
 
 interface StatsCardsProps {
   totalReps: number;
@@ -14,16 +14,16 @@ export function StatsCards({ totalReps, totalActiveKcal, totalWorkouts }: StatsC
     {
       label: 'Total Reps',
       value: totalReps.toLocaleString(),
-      icon: Hash,
+      icon: Dumbbell,
       color: 'text-white',
       bgColor: 'bg-white/10',
     },
     {
-      label: 'Active kcal Burned',
+      label: 'Total kcal Burned',
       value: totalActiveKcal.toLocaleString(),
       icon: Flame,
-      color: 'text-secondary',
-      bgColor: 'bg-secondary/10',
+      color: 'text-white',
+      bgColor: 'bg-white/10',
     },
     {
       label: 'Total Workouts',

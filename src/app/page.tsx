@@ -733,7 +733,7 @@ export default function Home() {
             />
             <SessionsCard
               totalSessions={stats.totalWorkouts}
-              totalReps={stats.totalReps}
+              workouts={workouts}
             />
             <DailyGoals
               currentReps={todayStats.reps}

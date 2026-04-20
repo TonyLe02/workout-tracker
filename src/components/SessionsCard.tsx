@@ -3,15 +3,33 @@
 // Icons
 import { Calendar, WeightTilde } from 'lucide-react';
 
+import type { WorkoutEntry } from '@/types/workout';
+
 interface SessionsCardProps {
   totalSessions: number;
-  totalReps: number;
+  workouts: WorkoutEntry[];
 }
 
-export function SessionsCard({ totalSessions, totalReps }: SessionsCardProps) {
-  const avgRepsPerSession = totalSessions > 0 
-    ? Math.round(totalReps / totalSessions) 
-    : 0;
+function medianRepsPerSession(workouts: WorkoutEntry[]): number {
+  const repsByDate: Record<string, number> = {};
+
+  for (const w of workouts) {
+    repsByDate[w.date] = (repsByDate[w.date] || 0) + w.reps;
+  }
+
+  const values = Object.values(repsByDate).filter((r) => r > 0).sort((a, b) => a - b);
+
+  if (values.length === 0) return 0;
+
+  const mid = Math.floor(values.length / 2);
+
+  return values.length % 2 === 1
+    ? values[mid]
+    : Math.round((values[mid - 1] + values[mid]) / 2);
+}
+
+export function SessionsCard({ totalSessions, workouts }: SessionsCardProps) {
+  const medianReps = medianRepsPerSession(workouts);
 
   return (
     <div className="glass rounded-2xl p-6">
@@ -32,14 +50,14 @@ export function SessionsCard({ totalSessions, totalReps }: SessionsCardProps) {
           </div>
         </div>
 
-        {/* Avg Reps */}
+        {/* Median Reps */}
         <div className="text-right">
           <div className="flex items-center gap-1 text-text-secondary text-sm justify-end">
             <WeightTilde className="w-4 h-4" />
-            Avg reps/session
+            Median reps/session
           </div>
           <div className="text-2xl font-bold text-white">
-            {avgRepsPerSession}
+            {medianReps}
           </div>
         </div>
       </div>

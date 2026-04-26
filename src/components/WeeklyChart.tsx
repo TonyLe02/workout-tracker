@@ -35,6 +35,15 @@ interface ProgressChartProps {
   workouts: WorkoutEntry[];
 }
 
+// Each kcal log is a cumulative snapshot from the tracker (not a delta),
+// so the day's value is the latest reading — never a sum.
+function dayKcal(dayWorkouts: WorkoutEntry[]): number {
+  const latest = [...dayWorkouts].sort((a, b) => b.timestamp - a.timestamp);
+  const latestTotal = latest.find((w) => w.totalKcal > 0)?.totalKcal ?? 0;
+  const latestActive = latest.find((w) => w.activeKcal > 0)?.activeKcal ?? 0;
+  return latestTotal || latestActive;
+}
+
 interface TooltipEntry {
   name: string;
   value: number;
@@ -58,16 +67,11 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
         const dateStr = format(date, 'yyyy-MM-dd');
         const dayWorkouts = workouts.filter((w) => w.date === dateStr);
 
-        const activeSum = dayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0);
-        const latestTotal = dayWorkouts
-          .filter((w) => w.totalKcal > 0)
-          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
-
         return {
           date: dateStr,
           label: format(date, 'EEE'),
           reps: dayWorkouts.reduce((sum, w) => sum + w.reps, 0),
-          kcal: Math.max(activeSum, latestTotal),
+          kcal: dayKcal(dayWorkouts),
         };
       });
     }
@@ -78,16 +82,11 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
         const dateStr = format(date, 'yyyy-MM-dd');
         const dayWorkouts = workouts.filter((w) => w.date === dateStr);
 
-        const activeSum = dayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0);
-        const latestTotal = dayWorkouts
-          .filter((w) => w.totalKcal > 0)
-          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
-
         return {
           date: dateStr,
           label: format(date, 'd'),
           reps: dayWorkouts.reduce((sum, w) => sum + w.reps, 0),
-          kcal: Math.max(activeSum, latestTotal),
+          kcal: dayKcal(dayWorkouts),
         };
       });
     }
@@ -113,12 +112,7 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
 
       let monthKcal = 0;
       for (const date of Object.keys(byDate)) {
-        const dayWorkouts = byDate[date];
-        const activeSum = dayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0);
-        const latestTotal = dayWorkouts
-          .filter((w) => w.totalKcal > 0)
-          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
-        monthKcal += Math.max(activeSum, latestTotal);
+        monthKcal += dayKcal(byDate[date]);
       }
 
       return {

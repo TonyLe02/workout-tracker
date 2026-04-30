@@ -47,6 +47,7 @@ interface CellPos {
 
 export function HeatmapCard({ workouts }: HeatmapCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const [weekCount, setWeekCount] = useState(MAX_WEEKS);
   const [cellSize, setCellSize] = useState(MIN_CELL_SIZE);
@@ -121,6 +122,13 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
     [workouts, weekCount]
   );
 
+  // Scroll to show latest entries on mount
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+    scrollContainer.scrollLeft = scrollContainer.scrollWidth;
+  }, [grid]);
+
   const monthLabels = useMemo(() => {
     const labels: { weekIndex: number; label: string }[] = [];
     let lastMonth = -1;
@@ -183,19 +191,55 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
         </div>
       </div>
 
-      <div ref={containerRef} className="w-full">
+      <div ref={containerRef} className="w-full relative">
+        {hoverCell && hoverPos && !hoverCell.isPadding && (
+          <div
+            role="tooltip"
+            className="pointer-events-none absolute z-50 rounded-lg border border-white/20 bg-surface/95 backdrop-blur-xl px-3 py-2 text-xs text-white shadow-2xl whitespace-nowrap"
+            style={{
+              left: `${hoverPos.x}px`,
+              top: hoverPos.preferAbove
+                ? `${hoverPos.yTop - 8}px`
+                : `${hoverPos.yBottom + 8}px`,
+              transform: hoverPos.preferAbove
+                ? 'translate(-50%, -100%)'
+                : 'translate(-50%, 0)',
+            }}
+          >
+            <div className="font-semibold text-text-primary">
+              {format(parseISO(hoverCell.date), 'EEE, MMM d')}
+            </div>
+            <div className="text-text-secondary mt-0.5">
+              {hoverCell.reps} {hoverCell.reps === 1 ? 'rep' : 'reps'}
+              {hoverCell.kcal > 0 ? ` · ${hoverCell.kcal} kcal` : ''}
+            </div>
+          </div>
+        )}
         <div
-          ref={gridRef}
-          className="relative"
-          onMouseLeave={clearHover}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `${WEEKDAY_LABEL_WIDTH}px repeat(${grid.length}, ${cellSize}px)`,
-            gridTemplateRows: `auto repeat(7, ${cellSize}px)`,
-            columnGap: `${CELL_GAP}px`,
-            rowGap: `${CELL_GAP}px`,
+          ref={scrollContainerRef}
+          className="overflow-x-auto scrollbar-hide"
+          style={{ 
+            WebkitOverflowScrolling: 'touch',
+            paddingTop: '4px',
+            paddingBottom: '4px',
+            paddingRight: '4px',
+            marginTop: '-4px',
+            marginBottom: '-4px'
           }}
         >
+          <div
+            ref={gridRef}
+            className="relative"
+            onMouseLeave={clearHover}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `${WEEKDAY_LABEL_WIDTH}px repeat(${grid.length}, ${cellSize}px)`,
+              gridTemplateRows: `auto repeat(7, ${cellSize}px)`,
+              columnGap: `${CELL_GAP}px`,
+              rowGap: `${CELL_GAP}px`,
+              minWidth: 'fit-content',
+            }}
+          >
           <div />
           {grid.map((_, weekIndex) => {
             const monthLabel = monthLabels.find((entry) => entry.weekIndex === weekIndex);
@@ -219,30 +263,6 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
               {dayIndex % 2 === 1 ? label : ''}
             </div>
           ))}
-
-          {hoverCell && hoverPos && !hoverCell.isPadding && (
-            <div
-              role="tooltip"
-              className="pointer-events-none absolute z-50 rounded-lg border border-white/20 bg-surface/95 backdrop-blur-xl px-3 py-2 text-xs text-white shadow-2xl whitespace-nowrap"
-              style={{
-                left: `${hoverPos.x}px`,
-                top: hoverPos.preferAbove
-                  ? `${hoverPos.yTop - 8}px`
-                  : `${hoverPos.yBottom + 8}px`,
-                transform: hoverPos.preferAbove
-                  ? 'translate(-50%, -100%)'
-                  : 'translate(-50%, 0)',
-              }}
-            >
-              <div className="font-semibold text-text-primary">
-                {format(parseISO(hoverCell.date), 'EEE, MMM d')}
-              </div>
-              <div className="text-text-secondary mt-0.5">
-                {hoverCell.reps} {hoverCell.reps === 1 ? 'rep' : 'reps'}
-                {hoverCell.kcal > 0 ? ` · ${hoverCell.kcal} kcal` : ''}
-              </div>
-            </div>
-          )}
 
           {grid.map((column, weekIndex) =>
             column.map((cell, dayIndex) => {
@@ -290,6 +310,7 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
               );
             })
           )}
+          </div>
         </div>
       </div>
 

@@ -15,6 +15,7 @@ import { useWorkoutStore } from '@/store/workout-store';
 import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
 import { Calculator } from '@/components/Calculator';
 import { DailyGoals } from '@/components/DailyGoals';
+import { HeatmapCard } from '@/components/HeatmapCard';
 import { KcalInput } from '@/components/KcalInput';
 import { LevelCard } from '@/components/LevelCard';
 import { NowPlaying } from '@/components/NowPlaying';
@@ -761,6 +762,10 @@ export default function Home() {
               totalWorkouts={stats.totalWorkouts}
             />
           </div>
+        </div>
+
+        <div className="mt-8">
+          <HeatmapCard workouts={workouts} />
         </div>
 
         <div className="mt-8">

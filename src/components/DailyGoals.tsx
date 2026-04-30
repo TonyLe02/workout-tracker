@@ -1,7 +1,7 @@
 'use client';
 
 // React/Next.js
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // Components
 import { ProgressRing } from './ProgressRing';
@@ -33,6 +33,31 @@ export function DailyGoals({
 
   const repsComplete = repsProgress >= 100;
   const kcalComplete = kcalProgress >= 100;
+
+  const [repsCelebrating, setRepsCelebrating] = useState(false);
+  const [kcalCelebrating, setKcalCelebrating] = useState(false);
+  const previousRepsCompleteRef = useRef(repsComplete);
+  const previousKcalCompleteRef = useRef(kcalComplete);
+
+  useEffect(() => {
+    if (!previousRepsCompleteRef.current && repsComplete) {
+      setRepsCelebrating(true);
+      const timer = window.setTimeout(() => setRepsCelebrating(false), 800);
+      previousRepsCompleteRef.current = repsComplete;
+      return () => window.clearTimeout(timer);
+    }
+    previousRepsCompleteRef.current = repsComplete;
+  }, [repsComplete]);
+
+  useEffect(() => {
+    if (!previousKcalCompleteRef.current && kcalComplete) {
+      setKcalCelebrating(true);
+      const timer = window.setTimeout(() => setKcalCelebrating(false), 800);
+      previousKcalCompleteRef.current = kcalComplete;
+      return () => window.clearTimeout(timer);
+    }
+    previousKcalCompleteRef.current = kcalComplete;
+  }, [kcalComplete]);
 
   const handleSave = () => {
     const newReps = parseInt(editReps, 10) || 100;
@@ -96,51 +121,75 @@ export function DailyGoals({
       <div className="flex items-center justify-around">
         {/* Reps Goal */}
         <div className="flex flex-col items-center">
-          <ProgressRing
-            progress={repsProgress}
-            size={100}
-            strokeWidth={8}
-            color={repsComplete ? '#22c55e' : undefined}
-            useGradient={!repsComplete}
+          <div
+            className={`rounded-full ${
+              repsCelebrating ? 'animate-goal-complete-pulse' : ''
+            }`}
           >
-            <div className="text-center">
-              <div className="text-2xl font-bold text-text-primary">
-                {currentReps}
+            <ProgressRing
+              progress={repsProgress}
+              size={100}
+              strokeWidth={8}
+              color={repsComplete ? '#22c55e' : undefined}
+              useGradient={!repsComplete}
+            >
+              <div className="text-center">
+                <div className="text-2xl font-bold text-text-primary">
+                  {currentReps}
+                </div>
+                <div className="text-xs text-text-secondary">/ {goalReps}</div>
               </div>
-              <div className="text-xs text-text-secondary">/ {goalReps}</div>
-            </div>
-          </ProgressRing>
+            </ProgressRing>
+          </div>
           <div className="mt-3 flex items-center gap-1 text-sm text-text-secondary">
             <Dumbbell className="w-4 h-4 text-orange-500" />
             Reps
           </div>
           {repsComplete && (
-            <div className="text-xs text-success mt-1">Complete!</div>
+            <div
+              className={`text-xs text-success mt-1 ${
+                repsCelebrating ? 'animate-pop-in' : ''
+              }`}
+            >
+              Complete!
+            </div>
           )}
         </div>
 
         {/* Kcal Goal */}
         <div className="flex flex-col items-center">
-          <ProgressRing
-            progress={kcalProgress}
-            size={100}
-            strokeWidth={8}
-            color={kcalComplete ? '#22c55e' : undefined}
-            useGradient={!kcalComplete}
+          <div
+            className={`rounded-full ${
+              kcalCelebrating ? 'animate-goal-complete-pulse' : ''
+            }`}
           >
-            <div className="text-center">
-              <div className="text-2xl font-bold text-text-primary">
-                {currentKcal}
+            <ProgressRing
+              progress={kcalProgress}
+              size={100}
+              strokeWidth={8}
+              color={kcalComplete ? '#22c55e' : undefined}
+              useGradient={!kcalComplete}
+            >
+              <div className="text-center">
+                <div className="text-2xl font-bold text-text-primary">
+                  {currentKcal}
+                </div>
+                <div className="text-xs text-text-secondary">/ {goalKcal}</div>
               </div>
-              <div className="text-xs text-text-secondary">/ {goalKcal}</div>
-            </div>
-          </ProgressRing>
+            </ProgressRing>
+          </div>
           <div className="mt-3 flex items-center gap-1 text-sm text-text-secondary">
             <Flame className="w-4 h-4 text-orange-500" />
             Total kcal
           </div>
           {kcalComplete && (
-            <div className="text-xs text-success mt-1">Complete!</div>
+            <div
+              className={`text-xs text-success mt-1 ${
+                kcalCelebrating ? 'animate-pop-in' : ''
+              }`}
+            >
+              Complete!
+            </div>
           )}
         </div>
       </div>

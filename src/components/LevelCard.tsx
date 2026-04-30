@@ -1,10 +1,16 @@
 'use client';
 
-// Icons
-import { BicepsFlexed, Star } from 'lucide-react';
+// Components
+import { CountUp } from './CountUp';
+
+// Utils/Helpers
+import { getLevelTier, hexWithAlpha } from '@/lib/tiers';
 
 // Types/Interfaces
 import { getLevelTitle, getXPForNextLevel, getCurrentLevelXP } from '@/types/workout';
+
+// Icons
+import { BicepsFlexed, Star } from 'lucide-react';
 
 interface LevelCardProps {
   level: number;
@@ -17,6 +23,9 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
   const xpForNext = getXPForNextLevel(level);
   const currentXP = getCurrentLevelXP(totalXP, level);
   const progress = (currentXP / xpForNext) * 100;
+  const tier = getLevelTier(level);
+  const tierGradient = `linear-gradient(to right, ${tier.fromHex}, ${tier.toHex})`;
+  const tierBorder = hexWithAlpha(tier.toHex, 0.4);
 
   return (
     <div
@@ -28,7 +37,10 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+            <div
+              className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center"
+              style={{ border: `1px solid ${tierBorder}` }}
+            >
               <span className="text-2xl font-bold text-white">{level}</span>
             </div>
             {isLevelUp && (
@@ -47,8 +59,11 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
             <BicepsFlexed className="w-4 h-4" />
             Total XP
           </div>
-          <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500 font-mono">
-            {totalXP.toLocaleString()}
+          <div
+            className="text-2xl font-bold text-transparent bg-clip-text font-mono"
+            style={{ backgroundImage: tierGradient }}
+          >
+            <CountUp value={totalXP} />
           </div>
         </div>
       </div>

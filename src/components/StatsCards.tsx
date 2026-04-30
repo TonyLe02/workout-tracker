@@ -1,5 +1,8 @@
 'use client';
 
+// Components
+import { CountUp } from './CountUp';
+
 // Icons
 import { Calendar, Flame, Dumbbell } from 'lucide-react';
 
@@ -13,21 +16,21 @@ export function StatsCards({ totalReps, totalActiveKcal, totalWorkouts }: StatsC
   const stats = [
     {
       label: 'Total Reps',
-      value: totalReps.toLocaleString(),
+      value: totalReps,
       icon: Dumbbell,
       color: 'text-white',
       bgColor: 'bg-white/10',
     },
     {
       label: 'Total kcal Burned',
-      value: totalActiveKcal.toLocaleString(),
+      value: totalActiveKcal,
       icon: Flame,
       color: 'text-white',
       bgColor: 'bg-white/10',
     },
     {
       label: 'Total Workouts',
-      value: totalWorkouts.toLocaleString(),
+      value: totalWorkouts,
       icon: Calendar,
       color: 'text-white',
       bgColor: 'bg-white/10',
@@ -45,7 +48,7 @@ export function StatsCards({ totalReps, totalActiveKcal, totalWorkouts }: StatsC
             <stat.icon className={`w-5 h-5 ${stat.color}`} />
           </div>
           <div className="text-2xl font-bold text-text-primary mb-1">
-            {stat.value}
+            <CountUp value={stat.value} />
           </div>
           <div className="text-xs text-text-secondary">
             {stat.label}

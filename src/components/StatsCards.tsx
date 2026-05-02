@@ -80,7 +80,7 @@ export function StatsCards({
   return (
     <div className="glass rounded-2xl p-6">
       <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
         <span className="text-xs text-text-secondary uppercase tracking-wider">
           Stats
         </span>

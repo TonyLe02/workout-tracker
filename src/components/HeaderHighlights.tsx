@@ -48,7 +48,7 @@ interface PrLineProps {
 
 function PrLine({ icon, value, unit, date }: PrLineProps) {
   return (
-    <div className="flex items-center gap-1.5 text-sm sm:text-base leading-tight">
+    <div className="flex items-center gap-1.5 text-xs sm:text-base leading-tight">
       {icon}
       <span className="text-white font-semibold">
         {value.toLocaleString()}
@@ -93,7 +93,7 @@ export function HeaderHighlights({ workouts }: HeaderHighlightsProps) {
     <div className="flex items-center gap-3 sm:gap-4 min-w-0">
       <Trophy className="w-8 h-8 sm:w-12 sm:h-12 text-amber-400 flex-shrink-0" />
       <div className="flex flex-col leading-tight min-w-0">
-        <span className="text-sm sm:text-base uppercase tracking-wider text-text-secondary font-semibold">
+        <span className="text-xs sm:text-base uppercase tracking-wider text-text-secondary font-medium">
           Personal Best
         </span>
         {prKcal && (

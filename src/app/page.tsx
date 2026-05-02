@@ -15,12 +15,13 @@ import { useWorkoutStore } from '@/store/workout-store';
 import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
 import { Calculator } from '@/components/Calculator';
 import { DailyGoals } from '@/components/DailyGoals';
+import { HeaderHighlights } from '@/components/HeaderHighlights';
 import { HeatmapCard } from '@/components/HeatmapCard';
 import { KcalInput } from '@/components/KcalInput';
 import { LevelCard } from '@/components/LevelCard';
 import { NowPlaying } from '@/components/NowPlaying';
-import { SessionsCard } from '@/components/SessionsCard';
 import { StatsCards } from '@/components/StatsCards';
+import { TopTracks } from '@/components/TopTracks';
 import { WeeklyChart } from '@/components/WeeklyChart';
 
 // Utils/Helpers
@@ -603,12 +604,8 @@ export default function Home() {
       <div className="fixed inset-0 bg-background/50 pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-3 sm:px-4 py-8">
-        <header className="flex items-end justify-between mb-8 gap-4">
-          <div className="flex items-end">
-            <h1 className="text-lg sm:text-2xl font-bold text-white">
-              Let&apos;s crush it!
-            </h1>
-          </div>
+        <header className="flex items-center justify-between mb-8 gap-4">
+          <HeaderHighlights workouts={workouts} />
 
           <div className="flex items-center gap-3 sm:gap-4">
             <input
@@ -732,10 +729,16 @@ export default function Home() {
               totalXP={stats.totalXP}
               isLevelUp={isLevelUp}
             />
-            <SessionsCard
-              totalSessions={stats.totalWorkouts}
+            <WeeklyChart workouts={workouts} />
+            <StatsCards
+              totalReps={stats.totalReps}
+              totalActiveKcal={stats.totalActiveKcal}
+              totalWorkouts={stats.totalWorkouts}
               workouts={workouts}
             />
+          </div>
+
+          <div className="space-y-6">
             <DailyGoals
               currentReps={todayStats.reps}
               goalReps={dailyGoal.reps}
@@ -752,14 +755,12 @@ export default function Home() {
                 window.location.href = url;
               }}
             />
-          </div>
-
-          <div className="space-y-6">
-            <WeeklyChart workouts={workouts} />
-            <StatsCards
-              totalReps={stats.totalReps}
-              totalActiveKcal={stats.totalActiveKcal}
-              totalWorkouts={stats.totalWorkouts}
+            <TopTracks
+              accessToken={spotifyToken}
+              onConnect={async () => {
+                const url = await getSpotifyAuthUrl();
+                window.location.href = url;
+              }}
             />
           </div>
         </div>

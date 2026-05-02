@@ -1,38 +1,74 @@
 'use client';
 
 // React/Next.js
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 // Icons
-import { Delete, Plus, RotateCcw } from 'lucide-react';
+import { Delete, Dumbbell, Plus, RotateCcw } from 'lucide-react';
 
 interface CalculatorProps {
   onSubmit: (reps: number) => void;
   label?: string;
 }
 
+type Mode = 'manual' | 'quick';
+
+const REP_CHIPS = [1, 5, 10, 25, 50, 100];
+const MODE_STORAGE_KEY = 'calculator_reps_mode';
+const MAX_VALUE = 999999;
+
 export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) {
   const [display, setDisplay] = useState('0');
+  const [chipHistory, setChipHistory] = useState<number[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [mode, setMode] = useState<Mode>('manual');
+
+  useEffect(() => {
+    const saved = localStorage.getItem(MODE_STORAGE_KEY);
+    if (saved === 'manual' || saved === 'quick') setMode(saved);
+  }, []);
+
+  const switchMode = useCallback((next: Mode) => {
+    setMode(next);
+    localStorage.setItem(MODE_STORAGE_KEY, next);
+    setDisplay('0');
+    setChipHistory([]);
+  }, []);
 
   const handleNumber = useCallback((num: string) => {
     setDisplay((prev) => {
       if (prev === '0') return num;
-      if (prev.length >= 6) return prev; // Max 6 digits
+      if (prev.length >= 6) return prev;
       return prev + num;
     });
   }, []);
 
+  const handleChip = useCallback((amount: number) => {
+    setDisplay((prev) => {
+      const next = (parseInt(prev, 10) || 0) + amount;
+      return String(Math.min(next, MAX_VALUE));
+    });
+    setChipHistory((prev) => [...prev, amount]);
+  }, []);
+
   const handleClear = useCallback(() => {
     setDisplay('0');
+    setChipHistory([]);
   }, []);
 
   const handleBackspace = useCallback(() => {
+    if (mode === 'quick') {
+      if (chipHistory.length === 0) return;
+      const last = chipHistory[chipHistory.length - 1];
+      setChipHistory((prev) => prev.slice(0, -1));
+      setDisplay((prev) => String(Math.max(0, (parseInt(prev, 10) || 0) - last)));
+      return;
+    }
     setDisplay((prev) => {
       if (prev.length === 1) return '0';
       return prev.slice(0, -1);
     });
-  }, []);
+  }, [mode, chipHistory]);
 
   const handleAdd = useCallback(() => {
     const value = parseInt(display, 10);
@@ -41,12 +77,13 @@ export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) 
       onSubmit(value);
       setTimeout(() => {
         setDisplay('0');
+        setChipHistory([]);
         setIsAnimating(false);
       }, 300);
     }
   }, [display, onSubmit]);
 
-  const buttons = [
+  const numpadButtons = [
     '7', '8', '9',
     '4', '5', '6',
     '1', '2', '3',
@@ -55,54 +92,126 @@ export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) 
 
   return (
     <div className="glass rounded-2xl p-6">
+      {/* Header with mode toggle */}
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+          <span className="text-xs text-text-secondary uppercase tracking-wider truncate">
+            {label}
+          </span>
+        </div>
+        <div className="flex gap-1 bg-surface-hover/50 rounded-lg p-1 flex-shrink-0">
+          {(['manual', 'quick'] as Mode[]).map((option) => (
+            <button
+              key={option}
+              onClick={() => switchMode(option)}
+              className={`px-2 py-1 text-xs rounded-md transition-all ${
+                mode === option
+                  ? 'bg-white/10 text-white'
+                  : 'text-text-secondary hover:text-white'
+              }`}
+            >
+              {option === 'manual' ? 'Manual' : 'Quick +'}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Display */}
-      <div className="mb-4">
-        <div className="text-xs text-text-secondary uppercase tracking-wider mb-1">
-          {label}
-        </div>
-        <div
-          className={`
-            text-5xl font-bold text-text-primary text-right font-mono
-            transition-all duration-300
-            ${isAnimating ? 'scale-110 text-primary' : ''}
-          `}
-        >
-          {parseInt(display, 10).toLocaleString()}
-        </div>
+      <div
+        className={`
+          text-5xl font-bold text-text-primary text-right font-mono
+          transition-all duration-300 mb-4
+          ${isAnimating ? 'scale-110 text-primary' : ''}
+        `}
+      >
+        {parseInt(display, 10).toLocaleString()}
       </div>
 
-      {/* Keypad */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-2">
-        {buttons.map((btn) => (
-          <button
-            key={btn}
-            onClick={() => {
-              if (btn === 'C') handleClear();
-              else if (btn === '⌫') handleBackspace();
-              else handleNumber(btn);
-            }}
-            className={`
-              h-12 sm:h-14 rounded-xl font-semibold text-lg sm:text-xl
-              transition-all duration-150 active:scale-95
-              ${
-                btn === 'C'
-                  ? 'bg-surface-hover/50 text-danger hover:bg-surface-hover'
-                  : 'bg-surface-hover/50 text-text-primary hover:bg-surface-hover'
-              }
-            `}
-          >
-            {btn === 'C' ? (
-              <RotateCcw className="w-5 h-5 mx-auto" />
-            ) : btn === '⌫' ? (
-              <Delete className="w-5 h-5 mx-auto" />
-            ) : (
-              btn
-            )}
-          </button>
-        ))}
-      </div>
+      {mode === 'manual' ? (
+        <div className="grid grid-cols-3 gap-2 sm:gap-2">
+          {numpadButtons.map((btn) => (
+            <button
+              key={btn}
+              onClick={() => {
+                if (btn === 'C') handleClear();
+                else if (btn === '⌫') handleBackspace();
+                else handleNumber(btn);
+              }}
+              className={`
+                h-12 sm:h-14 rounded-xl font-semibold text-lg sm:text-xl
+                transition-all duration-150 active:scale-95
+                ${
+                  btn === 'C'
+                    ? 'bg-surface-hover/50 text-danger hover:bg-surface-hover'
+                    : 'bg-surface-hover/50 text-text-primary hover:bg-surface-hover'
+                }
+              `}
+            >
+              {btn === 'C' ? (
+                <RotateCcw className="w-5 h-5 mx-auto" />
+              ) : btn === '⌫' ? (
+                <Delete className="w-5 h-5 mx-auto" />
+              ) : (
+                btn
+              )}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            {REP_CHIPS.map((amount) => (
+              <button
+                key={amount}
+                onClick={() => handleChip(amount)}
+                className="
+                  h-12 sm:h-14 rounded-xl font-semibold text-base sm:text-lg
+                  bg-surface-hover/50 text-text-primary hover:bg-surface-hover
+                  transition-all duration-150 active:scale-95
+                "
+              >
+                +{amount}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleClear}
+              disabled={display === '0'}
+              className={`
+                h-12 sm:h-14 rounded-xl font-semibold
+                transition-all duration-150 active:scale-95
+                flex items-center justify-center
+                ${
+                  display === '0'
+                    ? 'bg-surface-hover/30 text-muted cursor-not-allowed'
+                    : 'bg-surface-hover/50 text-danger hover:bg-surface-hover'
+                }
+              `}
+            >
+              <RotateCcw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleBackspace}
+              disabled={chipHistory.length === 0}
+              className={`
+                h-12 sm:h-14 rounded-xl font-semibold
+                transition-all duration-150 active:scale-95
+                flex items-center justify-center
+                ${
+                  chipHistory.length === 0
+                    ? 'bg-surface-hover/30 text-muted cursor-not-allowed'
+                    : 'bg-surface-hover/50 text-text-primary hover:bg-surface-hover'
+                }
+              `}
+            >
+              <Delete className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Add Button */}
       <button
         onClick={handleAdd}
         disabled={display === '0'}

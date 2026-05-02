@@ -153,7 +153,7 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
     <div className="glass rounded-2xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
           <span className="text-xs text-text-secondary uppercase tracking-wider">
             {rangeLabels[timeRange]} Progress
           </span>

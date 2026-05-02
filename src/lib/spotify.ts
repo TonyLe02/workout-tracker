@@ -9,6 +9,7 @@ const SPOTIFY_SCOPES = [
   'user-read-currently-playing',
   'user-read-playback-state',
   'user-modify-playback-state',
+  'user-top-read',
 ].join(' ');
 
 export interface SpotifyTrack {
@@ -217,5 +218,93 @@ export async function skipToPrevious(accessToken: string): Promise<boolean> {
   } catch (error) {
     console.error('Error going to previous track:', error);
     return false;
+  }
+}
+
+export type SpotifyTopTimeRange = 'short_term' | 'medium_term' | 'long_term';
+
+export interface SpotifyTopTrack {
+  id: string;
+  uri: string;
+  name: string;
+  artist: string;
+  albumArt: string;
+  trackUrl: string;
+}
+
+interface SpotifyTopTracksResponse {
+  items: Array<{
+    id: string;
+    uri: string;
+    name: string;
+    artists: SpotifyArtist[];
+    album: {
+      images: SpotifyImage[];
+    };
+    external_urls: {
+      spotify: string;
+    };
+  }>;
+}
+
+export type PlayTrackResult =
+  | { ok: true }
+  | { ok: false; reason: 'no_device' | 'forbidden' | 'unauthorized' | 'error' };
+
+export async function playTrack(
+  accessToken: string,
+  trackUri: string
+): Promise<PlayTrackResult> {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ uris: [trackUri] }),
+    });
+
+    if (response.status === 204 || response.status === 202) return { ok: true };
+    if (response.status === 404) return { ok: false, reason: 'no_device' };
+    if (response.status === 403) return { ok: false, reason: 'forbidden' };
+    if (response.status === 401) return { ok: false, reason: 'unauthorized' };
+    return { ok: false, reason: 'error' };
+  } catch (error) {
+    console.error('Error playing track:', error);
+    return { ok: false, reason: 'error' };
+  }
+}
+
+export async function getTopTracks(
+  accessToken: string,
+  timeRange: SpotifyTopTimeRange = 'short_term',
+  limit = 10
+): Promise<SpotifyTopTrack[] | null> {
+  try {
+    const response = await fetch(
+      `https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=${limit}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    if (response.status === 401 || response.status === 403) {
+      return null;
+    }
+    if (!response.ok) return [];
+
+    const data = (await response.json()) as SpotifyTopTracksResponse;
+    return data.items.map((item) => ({
+      id: item.id,
+      uri: item.uri,
+      name: item.name,
+      artist: item.artists.map((a) => a.name).join(', '),
+      albumArt: item.album.images[item.album.images.length - 1]?.url || '',
+      trackUrl: item.external_urls.spotify,
+    }));
+  } catch (error) {
+    console.error('Error fetching top tracks:', error);
+    return [];
   }
 }

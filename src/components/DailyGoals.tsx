@@ -70,8 +70,8 @@ export function DailyGoals({
     <div className="glass rounded-2xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Target className="w-5 h-5 text-white" />
-          <span className="text-sm text-text-secondary uppercase tracking-wider">
+          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+          <span className="text-xs text-text-secondary uppercase tracking-wider">
             Daily Goals
           </span>
         </div>

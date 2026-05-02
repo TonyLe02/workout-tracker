@@ -4,7 +4,13 @@
 import { useState } from 'react';
 
 // Icons
-import { Award, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  Award,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+} from 'lucide-react';
 
 // Types/Interfaces
 import type { Achievement } from '@/types/workout';
@@ -24,8 +30,9 @@ function AchievementBadge({ achievement, unlocked, isNew = false }: AchievementB
     <div
       className={`
         relative p-4 rounded-xl transition-all duration-300
+        h-[150px] flex flex-col
         ${unlocked
-          ? `bg-gradient-to-br ${tierColor.bg} ${tierColor.border} border`
+          ? `bg-gradient-to-br ${tierColor.bg} border border-black/20`
           : 'bg-surface-hover/30 border border-border/30 opacity-50'
         }
         ${isNew ? 'animate-badge-unlock' : ''}
@@ -37,11 +44,11 @@ function AchievementBadge({ achievement, unlocked, isNew = false }: AchievementB
       </div>
 
       {/* Badge Info */}
-      <div className="text-center">
-        <div className={`text-sm font-semibold ${unlocked ? 'text-white' : 'text-muted'}`}>
+      <div className="text-center flex-1 flex flex-col justify-center min-h-0">
+        <div className={`text-sm font-semibold ${unlocked ? 'text-white' : 'text-muted'} line-clamp-1`}>
           {achievement.name}
         </div>
-        <div className={`text-xs mt-1 ${unlocked ? 'text-white/70' : 'text-muted'}`}>
+        <div className={`text-xs mt-1 ${unlocked ? 'text-white/70' : 'text-muted'} line-clamp-3`}>
           {achievement.description}
         </div>
       </div>
@@ -66,8 +73,11 @@ interface AchievementsGridProps {
   newAchievementIds?: string[];
 }
 
+const PAGE_SIZE = 12;
+
 export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: AchievementsGridProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Sort achievements: unlocked first, then by tier (diamond, gold, silver, bronze)
   const tierOrder = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
@@ -82,6 +92,12 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
   const unlockedCount = unlockedIds.length;
   const totalCount = ACHIEVEMENTS.length;
 
+  const totalPages = Math.max(1, Math.ceil(sortedAchievements.length / PAGE_SIZE));
+  const visibleAchievements = sortedAchievements.slice(
+    currentPage * PAGE_SIZE,
+    (currentPage + 1) * PAGE_SIZE
+  );
+
   return (
     <div className="glass rounded-2xl p-6">
       <button
@@ -89,8 +105,8 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
         className="w-full flex items-center justify-between mb-4 cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <Award className="w-5 h-5 text-yellow-500" />
-          <span className="text-sm text-text-secondary uppercase tracking-wider">
+          <Award className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
+          <span className="text-xs text-text-secondary uppercase tracking-wider">
             Achievements
           </span>
         </div>
@@ -117,16 +133,43 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
 
       {/* Achievement Grid */}
       {isExpanded && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
-          {sortedAchievements.map((achievement) => (
-            <AchievementBadge
-              key={achievement.id}
-              achievement={achievement}
-              unlocked={unlockedIds.includes(achievement.id)}
-              isNew={newAchievementIds.includes(achievement.id)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
+            {visibleAchievements.map((achievement) => (
+              <AchievementBadge
+                key={achievement.id}
+                achievement={achievement}
+                unlocked={unlockedIds.includes(achievement.id)}
+                isNew={newAchievementIds.includes(achievement.id)}
+              />
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                disabled={currentPage === 0}
+                className="p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="w-4 h-4 text-text-secondary" />
+              </button>
+              <span className="text-xs text-text-secondary font-mono">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
+                }
+                disabled={currentPage === totalPages - 1}
+                className="p-1.5 rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Next page"
+              >
+                <ChevronRight className="w-4 h-4 text-text-secondary" />
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

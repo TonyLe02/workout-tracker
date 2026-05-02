@@ -2,7 +2,7 @@
 
 ### Level Up Your Workout
 
-<img width="1920" height="919" alt="bilde" src="https://github.com/user-attachments/assets/3f46aeb1-2511-4db5-846d-fad82d009ace" />
+<img width="1920" height="919" alt="bilde" src="https://github.com/user-attachments/assets/8c241197-b634-436f-9ff7-ed75e5dabcdb" />
 
 ## Why?
 

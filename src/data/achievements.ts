@@ -883,13 +883,92 @@ export const ACHIEVEMENTS: Achievement[] = [
     xpReward: 1200,
     tier: 'gold',
   },
+
+  // === MORE POP CULTURE ===
+
+  // Dragon Ball Z - Kamehameha
+  {
+    id: 'dbz-kamehameha',
+    name: 'Kamehameha!',
+    description: 'Complete 11,111 reps. Charge it up... release!',
+    icon: '🌀',
+    requirement: (stats) => stats.totalReps >= 11111,
+    xpReward: 333,
+    tier: 'silver',
+  },
+
+  // Bleach
+  {
+    id: 'bleach-bankai',
+    name: 'Bankai!',
+    description: 'Burn 18,000 kcal. Final release achieved.',
+    icon: '🗡️',
+    requirement: (stats) => stats.totalActiveKcal >= 18000,
+    xpReward: 450,
+    tier: 'gold',
+  },
+
+  // Berserk
+  {
+    id: 'berserk-struggler',
+    name: 'The Struggler',
+    description: 'Complete 22,222 reps. Strike with all your might.',
+    icon: '⚔️',
+    requirement: (stats) => stats.totalReps >= 22222,
+    xpReward: 555,
+    tier: 'silver',
+  },
+
+  // League - Faker
+  {
+    id: 'lol-faker',
+    name: 'Unkillable Demon King',
+    description: 'Reach level 65. The GOAT lives on.',
+    icon: '🐐',
+    requirement: (stats) => stats.level >= 65,
+    xpReward: 1200,
+    tier: 'gold',
+  },
+
+  // Pokemon
+  {
+    id: 'pokemon-trainer',
+    name: 'Gotta Train Em All',
+    description: 'Log 150 workout sessions. Pokemon Master status.',
+    icon: '🎒',
+    requirement: (stats) => stats.totalWorkouts >= 150,
+    xpReward: 800,
+    tier: 'gold',
+  },
+
+  // Avatar: The Last Airbender
+  {
+    id: 'avatar-master',
+    name: 'Avatar State',
+    description: 'Reach level 99. Master of all four elements.',
+    icon: '🌪️',
+    requirement: (stats) => stats.level >= 99,
+    xpReward: 2400,
+    tier: 'diamond',
+  },
+
+  // Doom
+  {
+    id: 'doom-slayer',
+    name: 'Rip and Tear',
+    description: 'Complete 88,888 reps. Until it is done.',
+    icon: '👹',
+    requirement: (stats) => stats.totalReps >= 88888,
+    xpReward: 3500,
+    tier: 'diamond',
+  },
 ];
 
 export const TIER_COLORS = {
   bronze: {
-    bg: 'from-amber-700 to-amber-900',
-    border: 'border-amber-600',
-    text: 'text-amber-400',
+    bg: 'from-amber-800 to-amber-950',
+    border: 'border-amber-700',
+    text: 'text-amber-700',
   },
   silver: {
     bg: 'from-slate-400 to-slate-600',
@@ -899,7 +978,7 @@ export const TIER_COLORS = {
   gold: {
     bg: 'from-yellow-500 to-yellow-700',
     border: 'border-yellow-500',
-    text: 'text-yellow-400',
+    text: 'text-yellow-300',
   },
   diamond: {
     bg: 'from-cyan-400 to-purple-600',

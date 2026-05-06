@@ -15,7 +15,6 @@ import { useWorkoutStore } from '@/store/workout-store';
 import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
 import { Calculator } from '@/components/Calculator';
 import { DailyGoals } from '@/components/DailyGoals';
-import { HeaderHighlights } from '@/components/HeaderHighlights';
 import { HeatmapCard } from '@/components/HeatmapCard';
 import { KcalInput } from '@/components/KcalInput';
 import { LevelCard } from '@/components/LevelCard';
@@ -44,7 +43,7 @@ import { ACHIEVEMENTS } from '@/data/achievements';
 import type { DailyGoal, WorkoutEntry } from '@/types/workout';
 
 // Icons
-import { Cloud, CloudCheck, Dumbbell, Loader2, LogOut } from 'lucide-react';
+import { Cloud, CloudCheck, Dumbbell, Loader2, LogOut, Pencil } from 'lucide-react';
 
 type SyncStatus = 'local' | 'syncing' | 'synced' | 'error';
 
@@ -110,6 +109,15 @@ function getUserMetadataAvatar(user: User | null) {
   }
 
   return null;
+}
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'Working late';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  if (hour < 22) return 'Good evening';
+  return 'Working late';
 }
 
 export default function Home() {
@@ -604,19 +612,18 @@ export default function Home() {
       <div className="fixed inset-0 bg-background/50 pointer-events-none" />
 
       <div className="relative max-w-6xl mx-auto px-3 sm:px-4 py-8">
-        <header className="flex items-center justify-between mb-8 gap-4">
-          <HeaderHighlights workouts={workouts} />
+        <header className="flex items-center justify-between mb-8 gap-3 sm:gap-4">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageUpload}
+            accept="image/*"
+            className="hidden"
+          />
 
-          <div className="flex items-center gap-3 sm:gap-4">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              accept="image/*"
-              className="hidden"
-            />
-
-            <div className="text-right flex flex-col justify-center">
+          <div className="flex flex-col leading-tight min-w-0">
+            <h1 className="font-display text-lg sm:text-3xl font-semibold tracking-tight text-white leading-tight inline-flex items-baseline flex-wrap gap-x-1.5">
+              <span className="hidden sm:inline">{getGreeting()},</span>
               {isEditingName ? (
                 <input
                   type="text"
@@ -629,75 +636,124 @@ export default function Home() {
                     }
                   }}
                   autoFocus
-                  className="text-sm sm:text-lg font-medium text-text-primary bg-transparent border-b border-white/30 outline-none text-right"
+                  className="bg-transparent border-b border-green-400/50 outline-none font-semibold text-green-400"
+                  size={Math.max(userName.length, 4)}
                 />
               ) : (
-                <p
+                <button
                   onClick={() => setIsEditingName(true)}
-                  className="text-sm sm:text-lg font-medium text-text-primary cursor-pointer hover:text-white/80 leading-tight"
+                  className="group inline-flex items-baseline gap-1.5 text-green-400 hover:text-green-300 transition-colors"
+                  title="Click to edit your name"
                 >
-                  {userName}
-                </p>
+                  <span>{userName}</span>
+                  <Pencil className="w-3 h-3 sm:w-3.5 sm:h-3.5 self-center text-green-400/70 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
               )}
+            </h1>
 
-              <p className="text-xs sm:text-sm text-text-secondary leading-tight">
-                {format(new Date(), 'EEEE, MMMM d')}
-              </p>
+            <p className="text-xs sm:text-sm text-text-secondary leading-tight mt-1">
+              {format(new Date(), 'EEEE, MMMM d')}
+            </p>
+          </div>
 
-              <div className="flex items-center justify-end gap-1.5 sm:gap-2 whitespace-nowrap">
-                {syncStatus !== 'local' && (
-                  <span className="text-[10px] sm:text-[11px] uppercase tracking-wide inline-flex items-center gap-1">
-                    {syncStatus === 'syncing' ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin text-text-secondary" />
-                        <span className="text-text-secondary">Syncing</span>
-                      </>
-                    ) : syncStatus === 'synced' ? (
-                      <button
-                        onClick={handleManualRefetch}
-                        className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity"
-                        title="Click to refresh data from cloud"
-                      >
-                        <CloudCheck className="w-3 h-3 text-green-400" />
-                        <span className="text-green-400">Synced</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleManualRefetch}
-                        className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity"
-                        title="Click to retry sync"
-                      >
-                        <span className="text-red-400">Sync error</span>
-                      </button>
-                    )}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 whitespace-nowrap">
+              {syncStatus !== 'local' &&
+                (syncStatus === 'syncing' ? (
+                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-white/5 border border-white/10 text-[11px] uppercase tracking-wide text-text-secondary">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Syncing
                   </span>
-                )}
+                ) : syncStatus === 'synced' ? (
+                  <button
+                    onClick={handleManualRefetch}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition-colors text-[11px] uppercase tracking-wide text-green-400"
+                    title="Click to refresh data from cloud"
+                  >
+                    <CloudCheck className="w-3 h-3" />
+                    Synced
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleManualRefetch}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors text-[11px] uppercase tracking-wide text-red-400"
+                    title="Click to retry sync"
+                  >
+                    Sync error
+                  </button>
+                ))}
 
-                {isSupabaseConfigured &&
-                  (authUser ? (
-                    <button
-                      onClick={handleSignOut}
-                      className="text-[10px] sm:text-[11px] uppercase tracking-wide text-white/70 hover:text-red-400 inline-flex items-center gap-1 transition-colors"
-                      title="Sign out of Google sync"
-                    >
-                      <LogOut className="w-3 h-3" />
-                      Sign out
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleGoogleSignIn}
-                      className="text-[10px] sm:text-[11px] uppercase tracking-wide text-white/80 hover:text-white inline-flex items-center gap-1"
-                    >
-                      <Cloud className="w-3 h-3" />
-                      Sync
-                    </button>
-                  ))}
-              </div>
+              {isSupabaseConfigured &&
+                (authUser ? (
+                  <button
+                    onClick={handleSignOut}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-red-500/15 hover:border-red-500/30 hover:text-red-400 transition-colors text-[11px] uppercase tracking-wide text-white/70"
+                    title="Sign out of Google sync"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    Sign out
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleGoogleSignIn}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-[11px] uppercase tracking-wide text-white/80 hover:text-white"
+                  >
+                    <Cloud className="w-3 h-3" />
+                    Sync
+                  </button>
+                ))}
+            </div>
+
+            <div className="flex sm:hidden items-center gap-1">
+              {syncStatus === 'syncing' && (
+                <span
+                  className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center"
+                  title="Syncing"
+                >
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-text-secondary" />
+                </span>
+              )}
+              {syncStatus === 'synced' && (
+                <button
+                  onClick={handleManualRefetch}
+                  className="w-8 h-8 rounded-full bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition-colors flex items-center justify-center"
+                  title="Click to refresh data from cloud"
+                >
+                  <CloudCheck className="w-3.5 h-3.5 text-green-400" />
+                </button>
+              )}
+              {syncStatus === 'error' && (
+                <button
+                  onClick={handleManualRefetch}
+                  className="w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors flex items-center justify-center"
+                  title="Sync error - click to retry"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-red-400" />
+                </button>
+              )}
+              {isSupabaseConfigured &&
+                (authUser ? (
+                  <button
+                    onClick={handleSignOut}
+                    className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-red-500/15 hover:border-red-500/30 transition-colors flex items-center justify-center text-white/70 hover:text-red-400"
+                    title="Sign out"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleGoogleSignIn}
+                    className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors flex items-center justify-center text-white/80 hover:text-white"
+                    title="Sync with Google"
+                  >
+                    <Cloud className="w-3.5 h-3.5" />
+                  </button>
+                ))}
             </div>
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 border-white/20 overflow-hidden hover:border-white/40 transition-colors flex-shrink-0"
+              className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 border-white/20 overflow-hidden hover:border-white/40 transition-colors flex-shrink-0"
               title="Click to change profile picture"
             >
               {profileImage ? (

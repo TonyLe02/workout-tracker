@@ -180,13 +180,14 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
         <div className="text-xs text-text-secondary mb-2">Reps</div>
         <div className="h-32">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
+            <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <XAxis
                 dataKey="label"
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#a3a3a3', fontSize: 10 }}
                 interval={timeRange === 'month' ? 4 : 0}
+                padding={{ left: 12, right: 12 }}
               />
               <YAxis hide />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.08)' }} />
@@ -207,7 +208,7 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
         <div className="text-xs text-text-secondary mb-2">Total Calories</div>
         <div className="h-32">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <AreaChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="colorKcal" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
@@ -220,6 +221,7 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
                 tickLine={false}
                 tick={{ fill: '#a3a3a3', fontSize: 10 }}
                 interval={timeRange === 'month' ? 4 : 0}
+                padding={{ left: 12, right: 12 }}
               />
               <YAxis hide />
               <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.2)' }} />

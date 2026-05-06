@@ -70,7 +70,7 @@ export function DailyGoals({
     <div className="glass rounded-2xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
+          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
           <span className="text-xs text-text-secondary uppercase tracking-wider">
             Daily Goals
           </span>
@@ -142,7 +142,7 @@ export function DailyGoals({
             </ProgressRing>
           </div>
           <div className="mt-3 flex items-center gap-1 text-sm text-text-secondary">
-            <Dumbbell className="w-4 h-4 text-orange-500" />
+            <Dumbbell className="w-4 h-4 text-green-500" />
             Reps
           </div>
           {repsComplete && (

@@ -29,12 +29,9 @@ function AchievementBadge({ achievement, unlocked, isNew = false }: AchievementB
   return (
     <div
       className={`
-        relative p-4 rounded-xl transition-all duration-300
+        relative p-4 rounded-xl border border-white/10
         h-[150px] flex flex-col
-        ${unlocked
-          ? `bg-gradient-to-br ${tierColor.bg} border border-black/20`
-          : 'bg-surface-hover/30 border border-border/30 opacity-50'
-        }
+        ${unlocked ? '' : 'opacity-20'}
         ${isNew ? 'animate-badge-unlock' : ''}
       `}
     >
@@ -45,17 +42,17 @@ function AchievementBadge({ achievement, unlocked, isNew = false }: AchievementB
 
       {/* Badge Info */}
       <div className="text-center flex-1 flex flex-col justify-center min-h-0">
-        <div className={`text-sm font-semibold ${unlocked ? 'text-white' : 'text-muted'} line-clamp-1`}>
+        <div className={`text-sm font-semibold line-clamp-1 ${unlocked ? tierColor.text : 'text-muted'}`}>
           {achievement.name}
         </div>
-        <div className={`text-xs mt-1 ${unlocked ? 'text-white/70' : 'text-muted'} line-clamp-3`}>
+        <div className={`text-xs mt-1 line-clamp-3 ${unlocked ? 'text-text-secondary' : 'text-muted'}`}>
           {achievement.description}
         </div>
       </div>
 
       {/* XP Reward */}
       {unlocked && (
-        <div className="absolute -top-2 -right-2 bg-background/90 px-2 py-0.5 rounded-full text-xs font-semibold text-success border border-success/30">
+        <div className="absolute -top-2 -right-2 bg-background/80 backdrop-blur-md px-2 py-0.5 rounded-full text-xs font-semibold text-success/90 border border-success/20">
           +{achievement.xpReward} XP
         </div>
       )}

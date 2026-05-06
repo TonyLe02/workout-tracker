@@ -24,7 +24,7 @@ const MIN_CELL_SIZE = 12;
 const MAX_CELL_SIZE = 22;
 const CELL_GAP = 3;
 const WEEKDAY_LABEL_WIDTH = 28;
-const SAFETY_MARGIN = 4;
+const SAFETY_MARGIN = 12;
 const MIN_WEEKS = 26;
 const MAX_WEEKS = 52;
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -218,13 +218,14 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
         <div
           ref={scrollContainerRef}
           className="overflow-x-auto scrollbar-hide"
-          style={{ 
+          style={{
             WebkitOverflowScrolling: 'touch',
             paddingTop: '4px',
             paddingBottom: '4px',
+            paddingLeft: '4px',
             paddingRight: '4px',
             marginTop: '-4px',
-            marginBottom: '-4px'
+            marginBottom: '-4px',
           }}
         >
           <div

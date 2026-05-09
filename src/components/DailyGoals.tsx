@@ -25,6 +25,7 @@ export function DailyGoals({
   onGoalChange,
 }: DailyGoalsProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [showPercent, setShowPercent] = useState(false);
   const [editReps, setEditReps] = useState(goalReps.toString());
   const [editKcal, setEditKcal] = useState(goalKcal.toString());
 
@@ -133,12 +134,25 @@ export function DailyGoals({
               color={repsComplete ? '#22c55e' : undefined}
               useGradient={!repsComplete}
             >
-              <div className="text-center">
-                <div className="text-2xl font-bold text-text-primary">
-                  {currentReps}
-                </div>
-                <div className="text-xs text-text-secondary">/ {goalReps}</div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPercent((v) => !v)}
+                aria-label="Toggle percentage view"
+                className="text-center cursor-pointer rounded-full px-2 py-1 hover:bg-white/5 transition-colors focus:outline-none"
+              >
+                {showPercent ? (
+                  <div className="text-2xl font-bold text-text-primary">
+                    {Math.round(repsProgress)}%
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-text-primary">
+                      {currentReps}
+                    </div>
+                    <div className="text-xs text-text-secondary">/ {goalReps}</div>
+                  </>
+                )}
+              </button>
             </ProgressRing>
           </div>
           <div className="mt-3 flex items-center gap-1 text-sm text-text-secondary">
@@ -170,12 +184,25 @@ export function DailyGoals({
               color={kcalComplete ? '#22c55e' : undefined}
               useGradient={!kcalComplete}
             >
-              <div className="text-center">
-                <div className="text-2xl font-bold text-text-primary">
-                  {currentKcal}
-                </div>
-                <div className="text-xs text-text-secondary">/ {goalKcal}</div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPercent((v) => !v)}
+                aria-label="Toggle percentage view"
+                className="text-center cursor-pointer rounded-full px-2 py-1 hover:bg-white/5 transition-colors focus:outline-none"
+              >
+                {showPercent ? (
+                  <div className="text-2xl font-bold text-text-primary">
+                    {Math.round(kcalProgress)}%
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-text-primary">
+                      {currentKcal}
+                    </div>
+                    <div className="text-xs text-text-secondary">/ {goalKcal}</div>
+                  </>
+                )}
+              </button>
             </ProgressRing>
           </div>
           <div className="mt-3 flex items-center gap-1 text-sm text-text-secondary">

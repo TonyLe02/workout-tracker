@@ -1,8 +1,6 @@
-# Workout Tracker
-
 ### Level Up Your Workout
 
-<img width="1920" height="919" alt="bilde" src="https://github.com/user-attachments/assets/8c241197-b634-436f-9ff7-ed75e5dabcdb" />
+<img width="1920" height="919" alt="bilde" src="https://github.com/user-attachments/assets/c818d5f1-6046-4323-8c8d-8da49c3ae1b7" />
 
 ## Why?
 

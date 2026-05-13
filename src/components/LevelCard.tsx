@@ -1,7 +1,6 @@
 'use client';
 
 // Components
-import { ConfettiBurst } from './ConfettiBurst';
 import { CountUp } from './CountUp';
 
 // Utils/Helpers
@@ -33,11 +32,10 @@ export function LevelCard({ level, totalXP, isLevelUp = false, todayXP = 0 }: Le
   return (
     <div
       className={`
-        glass rounded-2xl p-6 relative overflow-hidden
+        glass rounded-2xl p-6
         ${isLevelUp ? 'animate-level-up' : ''}
       `}
     >
-      <ConfettiBurst trigger={isLevelUp} spread={140} count={18} />
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">

@@ -123,7 +123,7 @@ export function TodayLog({ workouts, onDelete, onEdit }: TodayLogProps) {
     <div className="glass rounded-2xl p-6">
       <div className="flex items-center justify-between mb-3 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
           <span className="text-xs text-text-secondary uppercase tracking-wider truncate">
             Log
           </span>

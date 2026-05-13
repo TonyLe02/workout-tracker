@@ -14,7 +14,6 @@ import { useWorkoutStore } from '@/store/workout-store';
 // Components
 import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
 import { Calculator } from '@/components/Calculator';
-import { ConfettiBurst } from '@/components/ConfettiBurst';
 import { DailyGoals } from '@/components/DailyGoals';
 import { EmptyStateHero } from '@/components/EmptyStateHero';
 import { HeatmapCard } from '@/components/HeatmapCard';
@@ -24,6 +23,7 @@ import { LevelCard } from '@/components/LevelCard';
 import { MobileQuickAdd } from '@/components/MobileQuickAdd';
 import { NowPlaying } from '@/components/NowPlaying';
 import { PersonalBests } from '@/components/PersonalBests';
+import { Playlists } from '@/components/Playlists';
 import { StatsCards } from '@/components/StatsCards';
 import { StickyMobileHeader } from '@/components/StickyMobileHeader';
 import { Toaster, showToast } from '@/components/Toaster';
@@ -238,7 +238,6 @@ export default function Home() {
   const hasHydratedRemoteDataRef = useRef(false);
   const isManualSyncingRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
-  const [prConfettiTrigger, setPrConfettiTrigger] = useState(0);
 
   const {
     workouts,
@@ -351,11 +350,10 @@ export default function Home() {
     if (localStorage.getItem(storageKey) === today) return;
 
     localStorage.setItem(storageKey, today);
-    setPrConfettiTrigger((value) => value + 1);
     showToast({
       tone: 'celebrate',
       message: 'Daily goals crushed!',
-      detail: "Both rings complete — that's a wrap on today.",
+      detail: "Both goals complete — that's a wrap on today.",
       durationMs: 7000,
     });
   }, [mounted, workouts, dailyGoal, getTodayStats]);
@@ -574,13 +572,10 @@ export default function Home() {
 
     const newRepsToday = previousRepsToday + reps;
     if (bestReps > 0 && previousRepsToday <= bestReps && newRepsToday > bestReps) {
-      if (celebratePRIfNew('reps', newRepsToday, today)) {
-        setPrConfettiTrigger((value) => value + 1);
-      }
+      celebratePRIfNew('reps', newRepsToday, today);
     }
 
     if (isFirstEver) {
-      setPrConfettiTrigger((value) => value + 1);
       showToast({
         tone: 'celebrate',
         message: 'First workout logged!',
@@ -621,13 +616,10 @@ export default function Home() {
 
     const newKcalToday = Math.max(activeKcal, totalKcal, previousKcalToday);
     if (bestKcal > 0 && previousKcalToday <= bestKcal && newKcalToday > bestKcal) {
-      if (celebratePRIfNew('kcal', newKcalToday, today)) {
-        setPrConfettiTrigger((value) => value + 1);
-      }
+      celebratePRIfNew('kcal', newKcalToday, today);
     }
 
     if (isFirstEver) {
-      setPrConfettiTrigger((value) => value + 1);
       showToast({
         tone: 'celebrate',
         message: 'First workout logged!',
@@ -1227,6 +1219,13 @@ export default function Home() {
                 window.location.href = url;
               }}
             />
+            <Playlists
+              accessToken={spotifyToken}
+              onConnect={async () => {
+                const url = await getSpotifyAuthUrl();
+                window.location.href = url;
+              }}
+            />
           </div>
         </div>
 
@@ -1248,10 +1247,6 @@ export default function Home() {
           onClose={handleCloseAchievementPopup}
         />
       )}
-
-      <div className="pointer-events-none fixed inset-0 z-50">
-        <ConfettiBurst trigger={prConfettiTrigger} spread={260} count={32} />
-      </div>
 
       <MobileQuickAdd target={calculatorSentinelRef} onAdd={handleAddReps} />
       <StickyMobileHeader

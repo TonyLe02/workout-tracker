@@ -10,6 +10,8 @@ const SPOTIFY_SCOPES = [
   'user-read-playback-state',
   'user-modify-playback-state',
   'user-top-read',
+  'playlist-read-private',
+  'playlist-read-collaborative',
 ].join(' ');
 
 export interface SpotifyTrack {
@@ -272,6 +274,89 @@ export async function playTrack(
     return { ok: false, reason: 'error' };
   } catch (error) {
     console.error('Error playing track:', error);
+    return { ok: false, reason: 'error' };
+  }
+}
+
+export interface SpotifyPlaylist {
+  id: string;
+  uri: string;
+  name: string;
+  trackCount: number;
+  ownerName: string;
+  coverArt: string;
+  playlistUrl: string;
+  isPublic: boolean;
+}
+
+interface SpotifyPlaylistsResponse {
+  items: Array<{
+    id: string;
+    uri: string;
+    name: string;
+    public: boolean | null;
+    owner: { display_name?: string; id: string };
+    images: SpotifyImage[];
+    tracks: { total: number };
+    external_urls: { spotify: string };
+  }>;
+}
+
+export async function getUserPlaylists(
+  accessToken: string,
+  limit = 20
+): Promise<SpotifyPlaylist[] | null> {
+  try {
+    const response = await fetch(
+      `https://api.spotify.com/v1/me/playlists?limit=${limit}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    if (response.status === 401 || response.status === 403) {
+      return null;
+    }
+    if (!response.ok) return [];
+
+    const data = (await response.json()) as SpotifyPlaylistsResponse;
+    return data.items.map((item) => ({
+      id: item.id,
+      uri: item.uri,
+      name: item.name,
+      trackCount: item.tracks.total,
+      ownerName: item.owner.display_name ?? item.owner.id,
+      coverArt: item.images[item.images.length - 1]?.url ?? '',
+      playlistUrl: item.external_urls.spotify,
+      isPublic: item.public ?? false,
+    }));
+  } catch (error) {
+    console.error('Error fetching playlists:', error);
+    return [];
+  }
+}
+
+export async function playPlaylist(
+  accessToken: string,
+  contextUri: string
+): Promise<PlayTrackResult> {
+  try {
+    const response = await fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ context_uri: contextUri }),
+    });
+
+    if (response.status === 204 || response.status === 202) return { ok: true };
+    if (response.status === 404) return { ok: false, reason: 'no_device' };
+    if (response.status === 403) return { ok: false, reason: 'forbidden' };
+    if (response.status === 401) return { ok: false, reason: 'unauthorized' };
+    return { ok: false, reason: 'error' };
+  } catch (error) {
+    console.error('Error playing playlist:', error);
     return { ok: false, reason: 'error' };
   }
 }

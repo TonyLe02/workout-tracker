@@ -54,14 +54,14 @@ function MiniRing({ percent, size = 32, stroke = 3 }: ProgressRingProps) {
       <text
         x="50%"
         y="50%"
-        dy=".3em"
+        dy={isComplete ? '.35em' : '.3em'}
         textAnchor="middle"
-        fontSize="10"
-        fontWeight={600}
+        fontSize={isComplete ? '14' : '10'}
+        fontWeight={700}
         fill={isComplete ? '#22c55e' : '#ffffff'}
         fontFamily="ui-monospace, SFMono-Regular, monospace"
       >
-        {Math.min(99, Math.round(percent))}
+        {isComplete ? '✓' : Math.min(99, Math.round(percent))}
       </text>
     </svg>
   );

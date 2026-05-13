@@ -191,6 +191,40 @@ export function DailyGoals({
               className="w-full h-10 px-3 rounded-lg bg-white/5 border border-white/10 text-white text-center font-mono focus:outline-none focus:border-white/20"
             />
           </div>
+          <div>
+            <div className="text-[11px] text-text-secondary uppercase tracking-wider mb-1.5">
+              Quick Presets
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { label: 'Easy', reps: 100, kcal: 150 },
+                { label: 'Standard', reps: 300, kcal: 300 },
+                { label: 'Strong', reps: 600, kcal: 500 },
+                { label: 'Beast', reps: 1000, kcal: 750 },
+              ].map((preset) => {
+                const isActive =
+                  parseInt(editReps, 10) === preset.reps &&
+                  parseInt(editKcal, 10) === preset.kcal;
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      setEditReps(String(preset.reps));
+                      setEditKcal(String(preset.kcal));
+                    }}
+                    className={`h-10 rounded-lg text-xs font-medium transition-colors ${
+                      isActive
+                        ? 'bg-green-500/20 text-green-300 ring-1 ring-green-500/40'
+                        : 'bg-surface-hover/50 text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       ) : (
 

@@ -6,8 +6,11 @@ import { useState, useEffect, useCallback } from 'react';
 // External libraries
 import { formatDistanceToNowStrict } from 'date-fns';
 
+// Components
+import { showKeyboardHelp } from './KeyboardHelp';
+
 // Icons
-import { Clock, Delete, Dumbbell, Plus, RefreshCcw, RotateCcw } from 'lucide-react';
+import { Clock, Delete, Dumbbell, HelpCircle, Plus, RefreshCcw, RotateCcw } from 'lucide-react';
 
 interface CalculatorProps {
   onSubmit: (reps: number) => void;
@@ -320,6 +323,15 @@ export function Calculator({ onSubmit, label = 'COUNT REPS', lastEntry }: Calcul
         <span className="opacity-50">·</span>
         <kbd className="px-1.5 py-0.5 rounded bg-surface-hover/50 font-mono">Esc</kbd>
         <span>clear</span>
+        <button
+          type="button"
+          onClick={showKeyboardHelp}
+          aria-label="Show all keyboard shortcuts"
+          title="Show all keyboard shortcuts (?)"
+          className="ml-1 p-0.5 rounded text-text-secondary/60 hover:text-text-primary hover:bg-white/5 transition-colors"
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );

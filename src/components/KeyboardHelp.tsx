@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { create } from 'zustand';
 
 import { Keyboard, X } from 'lucide-react';
 
@@ -28,30 +29,65 @@ const SHORTCUTS: { section: string; rows: ShortcutRow[] }[] = [
   },
 ];
 
-interface KeyboardHelpProps {
+interface KeyboardHelpStore {
   open: boolean;
-  onClose: () => void;
+  setOpen: (open: boolean) => void;
+  toggle: () => void;
 }
 
-export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
+const useKeyboardHelpStore = create<KeyboardHelpStore>((set) => ({
+  open: false,
+  setOpen: (open) => set({ open }),
+  toggle: () => set((state) => ({ open: !state.open })),
+}));
+
+export function showKeyboardHelp() {
+  useKeyboardHelpStore.getState().setOpen(true);
+}
+
+export function KeyboardHelp() {
+  const open = useKeyboardHelpStore((state) => state.open);
+  const setOpen = useKeyboardHelpStore((state) => state.setOpen);
+  const toggle = useKeyboardHelpStore((state) => state.toggle);
+
+  useEffect(() => {
+    function handleHelpShortcut(event: KeyboardEvent) {
+      if (event.key !== '?') return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      toggle();
+    }
+
+    window.addEventListener('keydown', handleHelpShortcut);
+    return () => window.removeEventListener('keydown', handleHelpShortcut);
+  }, [toggle]);
+
   useEffect(() => {
     if (!open) return;
-    const handleKey = (event: KeyboardEvent) => {
+    const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        setOpen(false);
       }
     };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [open, onClose]);
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [open, setOpen]);
 
   if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
-      onClick={onClose}
+      onClick={() => setOpen(false)}
     >
       <div
         role="dialog"
@@ -67,7 +103,7 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
             </span>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => setOpen(false)}
             aria-label="Close"
             className="p-1 rounded-lg text-text-secondary/70 hover:text-text-primary hover:bg-white/5 transition-colors"
           >

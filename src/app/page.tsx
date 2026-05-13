@@ -16,6 +16,7 @@ import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
 import { Calculator } from '@/components/Calculator';
 import { ConfettiBurst } from '@/components/ConfettiBurst';
 import { DailyGoals } from '@/components/DailyGoals';
+import { EmptyStateHero } from '@/components/EmptyStateHero';
 import { HeatmapCard } from '@/components/HeatmapCard';
 import { KcalInput } from '@/components/KcalInput';
 import { KeyboardHelp } from '@/components/KeyboardHelp';
@@ -24,6 +25,7 @@ import { MobileQuickAdd } from '@/components/MobileQuickAdd';
 import { NowPlaying } from '@/components/NowPlaying';
 import { PersonalBests } from '@/components/PersonalBests';
 import { StatsCards } from '@/components/StatsCards';
+import { StickyMobileHeader } from '@/components/StickyMobileHeader';
 import { Toaster, showToast } from '@/components/Toaster';
 import { TodayLog } from '@/components/TodayLog';
 import { TopTracks } from '@/components/TopTracks';
@@ -237,7 +239,6 @@ export default function Home() {
   const isManualSyncingRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
   const [prConfettiTrigger, setPrConfettiTrigger] = useState(0);
-  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
 
   const {
     workouts,
@@ -337,28 +338,6 @@ export default function Home() {
       setCurrentPopupIndex(0);
     }
   }, [mounted, newAchievements]);
-
-  useEffect(() => {
-    if (!mounted) return;
-
-    function handleHelpShortcut(event: KeyboardEvent) {
-      if (event.key !== '?') return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-      event.preventDefault();
-      setShowKeyboardHelp((current) => !current);
-    }
-
-    window.addEventListener('keydown', handleHelpShortcut);
-    return () => window.removeEventListener('keydown', handleHelpShortcut);
-  }, [mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -1140,6 +1119,8 @@ export default function Home() {
           </div>
         </header>
 
+        {workouts.length === 0 && <EmptyStateHero name={userName} />}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-6">
             <div ref={calculatorSentinelRef}>
@@ -1220,10 +1201,15 @@ export default function Home() {
       </div>
 
       <MobileQuickAdd target={calculatorSentinelRef} onAdd={handleAddReps} />
-      <KeyboardHelp
-        open={showKeyboardHelp}
-        onClose={() => setShowKeyboardHelp(false)}
+      <StickyMobileHeader
+        name={userName}
+        initials={getInitials(userName)}
+        profileImage={profileImage}
+        level={stats.level}
+        todayReps={todayStats.reps}
+        todayKcal={todayStats.kcal}
       />
+      <KeyboardHelp />
       <Toaster />
     </main>
   );

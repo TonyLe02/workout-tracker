@@ -12,6 +12,59 @@ interface StickyMobileHeaderProps {
   level: number;
   todayReps: number;
   todayKcal: number;
+  goalReps: number;
+  goalKcal: number;
+}
+
+interface ProgressRingProps {
+  percent: number;
+  size?: number;
+  stroke?: number;
+}
+
+function MiniRing({ percent, size = 32, stroke = 3 }: ProgressRingProps) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - Math.min(1, percent / 100));
+  const isComplete = percent >= 100;
+
+  return (
+    <svg width={size} height={size} className="flex-shrink-0">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(255,255,255,0.08)"
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={isComplete ? '#22c55e' : '#facc15'}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        style={{ transition: 'stroke-dashoffset 400ms ease-out' }}
+      />
+      <text
+        x="50%"
+        y="50%"
+        dy=".3em"
+        textAnchor="middle"
+        fontSize="10"
+        fontWeight={600}
+        fill={isComplete ? '#22c55e' : '#ffffff'}
+        fontFamily="ui-monospace, SFMono-Regular, monospace"
+      >
+        {Math.min(99, Math.round(percent))}
+      </text>
+    </svg>
+  );
 }
 
 export function StickyMobileHeader({
@@ -21,7 +74,15 @@ export function StickyMobileHeader({
   level,
   todayReps,
   todayKcal,
+  goalReps,
+  goalKcal,
 }: StickyMobileHeaderProps) {
+  const repsProgress = goalReps > 0 ? (todayReps / goalReps) * 100 : 0;
+  const kcalProgress = goalKcal > 0 ? (todayKcal / goalKcal) * 100 : 0;
+  const combinedProgress =
+    goalReps > 0 && goalKcal > 0
+      ? (repsProgress + kcalProgress) / 2
+      : Math.max(repsProgress, kcalProgress);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -82,6 +143,7 @@ export function StickyMobileHeader({
             )}
           </div>
         </div>
+        {combinedProgress > 0 && <MiniRing percent={combinedProgress} />}
       </div>
     </div>
   );

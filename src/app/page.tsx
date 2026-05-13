@@ -349,10 +349,17 @@ export default function Home() {
     if (todayStats.reps > 0) segments.push(`${todayStats.reps.toLocaleString()} reps`);
     if (todayStats.kcal > 0) segments.push(`${todayStats.kcal.toLocaleString()} kcal`);
 
-    document.title = segments.length > 0
-      ? `${segments.join(' · ')} · Workout Tracker`
-      : baseTitle;
-  }, [mounted, workouts, getTodayStats]);
+    if (segments.length === 0) {
+      document.title = baseTitle;
+      return;
+    }
+
+    const repsHit = dailyGoal.reps > 0 && todayStats.reps >= dailyGoal.reps;
+    const kcalHit = dailyGoal.activeKcal > 0 && todayStats.kcal >= dailyGoal.activeKcal;
+    const prefix = repsHit && kcalHit ? '🏆 ' : repsHit || kcalHit ? '⭐ ' : '💪 ';
+
+    document.title = `${prefix}${segments.join(' · ')} · Workout Tracker`;
+  }, [mounted, workouts, getTodayStats, dailyGoal]);
 
   useEffect(() => {
     if (!mounted || !authReady) {
@@ -521,6 +528,7 @@ export default function Home() {
   const handleAddReps = (reps: number) => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const snapshot = useWorkoutStore.getState().workouts;
+    const isFirstEver = snapshot.length === 0;
     const { bestReps } = previousBestPerDay(snapshot, today);
     const previousRepsToday = snapshot
       .filter((entry) => entry.date === today)
@@ -549,11 +557,22 @@ export default function Home() {
         setPrConfettiTrigger((value) => value + 1);
       }
     }
+
+    if (isFirstEver) {
+      setPrConfettiTrigger((value) => value + 1);
+      showToast({
+        tone: 'celebrate',
+        message: 'First workout logged!',
+        detail: 'Welcome to the grind. Keep it rolling.',
+        durationMs: 6000,
+      });
+    }
   };
 
   const handleAddKcal = (activeKcal: number, totalKcal: number) => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const snapshot = useWorkoutStore.getState().workouts;
+    const isFirstEver = snapshot.length === 0;
     const { bestKcal } = previousBestPerDay(snapshot, today);
     const previousTodayStats = getTodayStats();
     const previousKcalToday = previousTodayStats.kcal;
@@ -584,6 +603,16 @@ export default function Home() {
       if (celebratePRIfNew('kcal', newKcalToday, today)) {
         setPrConfettiTrigger((value) => value + 1);
       }
+    }
+
+    if (isFirstEver) {
+      setPrConfettiTrigger((value) => value + 1);
+      showToast({
+        tone: 'celebrate',
+        message: 'First workout logged!',
+        detail: 'Welcome to the grind. Keep it rolling.',
+        durationMs: 6000,
+      });
     }
   };
 
@@ -1178,7 +1207,7 @@ export default function Home() {
         </div>
 
         <div className="mt-8">
-          <HeatmapCard workouts={workouts} />
+          <HeatmapCard workouts={workouts} dailyGoal={dailyGoal} />
         </div>
 
         <div className="mt-8">
@@ -1208,6 +1237,8 @@ export default function Home() {
         level={stats.level}
         todayReps={todayStats.reps}
         todayKcal={todayStats.kcal}
+        goalReps={dailyGoal.reps}
+        goalKcal={dailyGoal.activeKcal}
       />
       <KeyboardHelp />
       <Toaster />

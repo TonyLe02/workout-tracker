@@ -11,13 +11,14 @@ import { buildHeatmapData, type HeatmapCell } from '@/lib/heatmap';
 import { hexWithAlpha } from '@/lib/tiers';
 
 // Types/Interfaces
-import type { WorkoutEntry } from '@/types/workout';
+import type { DailyGoal, WorkoutEntry } from '@/types/workout';
 
 // Icons
 import { Activity } from 'lucide-react';
 
 interface HeatmapCardProps {
   workouts: WorkoutEntry[];
+  dailyGoal?: DailyGoal;
 }
 
 const MIN_CELL_SIZE = 12;
@@ -45,7 +46,7 @@ interface CellPos {
   preferAbove: boolean;
 }
 
-export function HeatmapCard({ workouts }: HeatmapCardProps) {
+export function HeatmapCard({ workouts, dailyGoal }: HeatmapCardProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
@@ -213,6 +214,15 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
               {hoverCell.reps} {hoverCell.reps === 1 ? 'rep' : 'reps'}
               {hoverCell.kcal > 0 ? ` · ${hoverCell.kcal} kcal` : ''}
             </div>
+            {dailyGoal !== undefined &&
+              dailyGoal.reps > 0 &&
+              dailyGoal.activeKcal > 0 &&
+              hoverCell.reps >= dailyGoal.reps &&
+              hoverCell.kcal >= dailyGoal.activeKcal && (
+                <div className="text-yellow-400 mt-1 text-[11px] font-medium">
+                  🏆 Goal hit
+                </div>
+              )}
           </div>
         )}
         <div
@@ -285,7 +295,16 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
                   ? 'rgba(255,255,255,0.06)'
                   : hexWithAlpha(HEATMAP_COLOR, alpha);
 
-              const ariaLabel = `${cell.date}: ${cell.reps} reps, ${cell.kcal} kcal`;
+              const goalHit =
+                dailyGoal !== undefined &&
+                dailyGoal.reps > 0 &&
+                dailyGoal.activeKcal > 0 &&
+                cell.reps >= dailyGoal.reps &&
+                cell.kcal >= dailyGoal.activeKcal;
+
+              const ariaLabel = goalHit
+                ? `${cell.date}: ${cell.reps} reps, ${cell.kcal} kcal (goal hit)`
+                : `${cell.date}: ${cell.reps} reps, ${cell.kcal} kcal`;
               const isSelected = selectedCell?.date === cell.date;
 
               return (
@@ -300,7 +319,13 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
                   }}
                   onMouseEnter={(event) => handleHover(cell, event.currentTarget, dayIndex)}
                   className={`rounded-[2px] focus:outline-none focus:ring-1 focus:ring-white/60 transition-transform hover:scale-110 ${
-                    isSelected ? 'ring-2 ring-white' : cell.isToday ? 'ring-1 ring-white' : ''
+                    isSelected
+                      ? 'ring-2 ring-white'
+                      : cell.isToday
+                      ? 'ring-1 ring-white'
+                      : goalHit
+                      ? 'ring-1 ring-yellow-400/80'
+                      : ''
                   }`}
                   style={{
                     gridColumn,
@@ -315,7 +340,13 @@ export function HeatmapCard({ workouts }: HeatmapCardProps) {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-end">
+      <div className="mt-3 flex items-center justify-end gap-4">
+        {dailyGoal !== undefined && dailyGoal.reps > 0 && dailyGoal.activeKcal > 0 && (
+          <div className="flex items-center gap-1.5 text-[10px] text-text-secondary">
+            <span className="w-3 h-3 rounded-[2px] ring-1 ring-yellow-400/80" />
+            <span>Goal hit</span>
+          </div>
+        )}
         <div className="flex items-center gap-1 text-[10px] text-text-secondary">
           <span>Less</span>
           {([0, 1, 2, 3, 4] as const).map((step) => (

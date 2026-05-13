@@ -70,6 +70,64 @@ function suggestGoal(avg: number): number {
   return Math.max(step, Math.round(avg / step) * step);
 }
 
+type RingView = 'value' | 'percent' | 'remaining';
+
+const VIEW_ORDER: RingView[] = ['value', 'percent', 'remaining'];
+
+function cycleView(view: RingView): RingView {
+  const index = VIEW_ORDER.indexOf(view);
+  return VIEW_ORDER[(index + 1) % VIEW_ORDER.length];
+}
+
+interface RingCenterProps {
+  view: RingView;
+  current: number;
+  goal: number;
+  percent: number;
+  accentClass: string;
+}
+
+function RingCenter({ view, current, goal, percent, accentClass }: RingCenterProps) {
+  if (view === 'percent') {
+    return (
+      <div className="text-2xl font-bold text-text-primary">
+        {Math.round(percent)}%
+      </div>
+    );
+  }
+
+  if (view === 'remaining') {
+    const remaining = Math.max(0, goal - current);
+    if (remaining === 0) {
+      return (
+        <>
+          <div className={`text-xl font-bold ${accentClass}`}>Done!</div>
+          <div className="text-[10px] text-text-secondary uppercase tracking-wider">
+            Goal hit
+          </div>
+        </>
+      );
+    }
+    return (
+      <>
+        <div className="text-2xl font-bold text-text-primary">
+          {remaining.toLocaleString()}
+        </div>
+        <div className="text-[10px] text-text-secondary uppercase tracking-wider">
+          to go
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="text-2xl font-bold text-text-primary">{current}</div>
+      <div className="text-xs text-text-secondary">/ {goal}</div>
+    </>
+  );
+}
+
 export function DailyGoals({
   currentReps,
   goalReps,
@@ -82,7 +140,7 @@ export function DailyGoals({
   onGoalChange,
 }: DailyGoalsProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [showPercent, setShowPercent] = useState(false);
+  const [view, setView] = useState<RingView>('value');
   const [editReps, setEditReps] = useState(goalReps.toString());
   const [editKcal, setEditKcal] = useState(goalKcal.toString());
 
@@ -245,34 +303,43 @@ export function DailyGoals({
         <div className="flex flex-col items-center">
           <div
             className={`rounded-full ${
-              repsCelebrating ? 'animate-goal-complete-pulse' : ''
+              repsCelebrating
+                ? 'animate-goal-complete-pulse'
+                : repsComplete
+                ? 'animate-goal-complete-breathe'
+                : ''
             }`}
+            style={{
+              ['--goal-pulse-color' as string]: 'rgba(34, 197, 94, 0.55)',
+              ['--goal-breathe-color' as string]: 'rgba(34, 197, 94, 0.18)',
+            } as React.CSSProperties}
           >
             <ProgressRing
               progress={repsProgress}
               size={100}
               strokeWidth={8}
               color={repsComplete ? '#22c55e' : undefined}
+              overflowColor="#16a34a"
               useGradient={!repsComplete}
+              gradientFrom="#4ade80"
+              gradientTo="#22c55e"
+              showTrailingDot
+              glowWhenComplete
             >
               <button
                 type="button"
-                onClick={() => setShowPercent((v) => !v)}
-                aria-label="Toggle percentage view"
-                className="text-center cursor-pointer rounded-full px-2 py-1 hover:bg-white/5 transition-colors focus:outline-none"
+                onClick={() => setView(cycleView)}
+                aria-label="Cycle ring view"
+                title="Tap to cycle: value · percent · remaining"
+                className="text-center cursor-pointer rounded-full px-2 py-1 focus:outline-none"
               >
-                {showPercent ? (
-                  <div className="text-2xl font-bold text-text-primary">
-                    {Math.round(repsProgress)}%
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-2xl font-bold text-text-primary">
-                      {currentReps}
-                    </div>
-                    <div className="text-xs text-text-secondary">/ {goalReps}</div>
-                  </>
-                )}
+                <RingCenter
+                  view={view}
+                  current={currentReps}
+                  goal={goalReps}
+                  percent={repsProgress}
+                  accentClass="text-green-500"
+                />
               </button>
             </ProgressRing>
           </div>
@@ -287,7 +354,7 @@ export function DailyGoals({
           )}
           {repsComplete && (
             <div
-              className={`text-xs text-success mt-1 ${
+              className={`text-xs text-green-500 mt-1 ${
                 repsCelebrating ? 'animate-pop-in' : ''
               }`}
             >
@@ -300,34 +367,43 @@ export function DailyGoals({
         <div className="flex flex-col items-center">
           <div
             className={`rounded-full ${
-              kcalCelebrating ? 'animate-goal-complete-pulse' : ''
+              kcalCelebrating
+                ? 'animate-goal-complete-pulse'
+                : kcalComplete
+                ? 'animate-goal-complete-breathe'
+                : ''
             }`}
+            style={{
+              ['--goal-pulse-color' as string]: 'rgba(249, 115, 22, 0.55)',
+              ['--goal-breathe-color' as string]: 'rgba(249, 115, 22, 0.18)',
+            } as React.CSSProperties}
           >
             <ProgressRing
               progress={kcalProgress}
               size={100}
               strokeWidth={8}
-              color={kcalComplete ? '#22c55e' : undefined}
+              color={kcalComplete ? '#f97316' : undefined}
+              overflowColor="#c2410c"
               useGradient={!kcalComplete}
+              gradientFrom="#eab308"
+              gradientTo="#f97316"
+              showTrailingDot
+              glowWhenComplete
             >
               <button
                 type="button"
-                onClick={() => setShowPercent((v) => !v)}
-                aria-label="Toggle percentage view"
-                className="text-center cursor-pointer rounded-full px-2 py-1 hover:bg-white/5 transition-colors focus:outline-none"
+                onClick={() => setView(cycleView)}
+                aria-label="Cycle ring view"
+                title="Tap to cycle: value · percent · remaining"
+                className="text-center cursor-pointer rounded-full px-2 py-1 focus:outline-none"
               >
-                {showPercent ? (
-                  <div className="text-2xl font-bold text-text-primary">
-                    {Math.round(kcalProgress)}%
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-2xl font-bold text-text-primary">
-                      {currentKcal}
-                    </div>
-                    <div className="text-xs text-text-secondary">/ {goalKcal}</div>
-                  </>
-                )}
+                <RingCenter
+                  view={view}
+                  current={currentKcal}
+                  goal={goalKcal}
+                  percent={kcalProgress}
+                  accentClass="text-orange-500"
+                />
               </button>
             </ProgressRing>
           </div>
@@ -342,7 +418,7 @@ export function DailyGoals({
           )}
           {kcalComplete && (
             <div
-              className={`text-xs text-success mt-1 ${
+              className={`text-xs text-orange-500 mt-1 ${
                 kcalCelebrating ? 'animate-pop-in' : ''
               }`}
             >

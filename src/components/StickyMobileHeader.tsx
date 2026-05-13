@@ -106,7 +106,7 @@ export function StickyMobileHeader({
         visible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
       }`}
     >
-      <div className="glass rounded-2xl px-3 py-2 flex items-center gap-3 shadow-xl shadow-black/40 ring-1 ring-white/5">
+      <div className="glass rounded-2xl px-3 py-2 flex items-center gap-3 shadow-md shadow-black/20 ring-1 ring-white/5">
         <div className="relative w-8 h-8 rounded-full border border-border overflow-hidden flex-shrink-0">
           {profileImage ? (
             <Image

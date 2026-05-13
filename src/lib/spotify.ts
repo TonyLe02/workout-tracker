@@ -296,10 +296,10 @@ interface SpotifyPlaylistsResponse {
     name: string;
     public: boolean | null;
     owner: { display_name?: string; id: string };
-    images: SpotifyImage[];
+    images: SpotifyImage[] | null;
     tracks: { total: number };
     external_urls: { spotify: string };
-  }>;
+  } | null>;
 }
 
 export async function getUserPlaylists(
@@ -336,16 +336,21 @@ export async function getUserPlaylists(
       return null;
     }
 
-    return data.items.map((item) => ({
-      id: item.id,
-      uri: item.uri,
-      name: item.name,
-      trackCount: item.tracks.total,
-      ownerName: item.owner.display_name ?? item.owner.id,
-      coverArt: item.images[item.images.length - 1]?.url ?? '',
-      playlistUrl: item.external_urls.spotify,
-      isPublic: item.public ?? false,
-    }));
+    return data.items
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .map((item) => {
+        const images = item.images ?? [];
+        return {
+          id: item.id,
+          uri: item.uri,
+          name: item.name,
+          trackCount: item.tracks?.total ?? 0,
+          ownerName: item.owner?.display_name ?? item.owner?.id ?? '',
+          coverArt: images[images.length - 1]?.url ?? '',
+          playlistUrl: item.external_urls?.spotify ?? '',
+          isPublic: item.public ?? false,
+        };
+      });
   } catch (error) {
     console.error('Error fetching playlists:', error);
     return null;

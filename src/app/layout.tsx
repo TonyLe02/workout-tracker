@@ -6,11 +6,16 @@ import './globals.css';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
 });
 
+// Display font only renders in the h1 greeting — skip preload to avoid the
+// "preloaded but not used within a few seconds" console warning.
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-display',
+  display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {

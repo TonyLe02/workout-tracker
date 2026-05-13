@@ -126,13 +126,24 @@ export function Playlists({ accessToken, onConnect }: PlaylistsProps) {
           ))}
         </div>
       ) : playlists.length === 0 ? (
-        <div className="flex items-center gap-3 py-4">
-          <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
-            <Music className="w-5 h-5 text-text-secondary" />
+        <div className="space-y-3 py-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+              <Music className="w-5 h-5 text-text-secondary" />
+            </div>
+            <div className="text-sm text-text-secondary">
+              No playlists found on your account.
+            </div>
           </div>
-          <div className="text-sm text-text-secondary">
-            No playlists found on your account.
-          </div>
+          <button
+            onClick={onConnect}
+            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors text-left"
+          >
+            <RefreshCw className="w-4 h-4 text-[#1DB954] flex-shrink-0" />
+            <div className="text-xs text-text-secondary">
+              Reconnect Spotify if you expected playlists to appear
+            </div>
+          </button>
         </div>
       ) : (
         <>

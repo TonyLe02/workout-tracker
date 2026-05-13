@@ -314,12 +314,28 @@ export async function getUserPlaylists(
       }
     );
 
+    // Any auth/scope failure: signal re-auth so the UI prompts a reconnect.
     if (response.status === 401 || response.status === 403) {
       return null;
     }
-    if (!response.ok) return [];
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      console.warn(
+        `Spotify /me/playlists failed: ${response.status} ${response.statusText}`,
+        errorBody
+      );
+      // Treat unexpected errors like an auth issue — surfaces the reconnect button
+      // instead of the misleading "No playlists found" message.
+      return null;
+    }
 
     const data = (await response.json()) as SpotifyPlaylistsResponse;
+    if (!Array.isArray(data?.items)) {
+      console.warn('Spotify /me/playlists returned unexpected payload:', data);
+      return null;
+    }
+
     return data.items.map((item) => ({
       id: item.id,
       uri: item.uri,
@@ -332,7 +348,7 @@ export async function getUserPlaylists(
     }));
   } catch (error) {
     console.error('Error fetching playlists:', error);
-    return [];
+    return null;
   }
 }
 

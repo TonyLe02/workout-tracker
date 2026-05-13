@@ -83,6 +83,47 @@ export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) 
     }
   }, [display, onSubmit]);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handleAdd();
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleClear();
+        return;
+      }
+
+      if (event.key === 'Backspace') {
+        event.preventDefault();
+        handleBackspace();
+        return;
+      }
+
+      // Numeric keys only meaningful in manual mode
+      if (mode === 'manual' && /^[0-9]$/.test(event.key)) {
+        event.preventDefault();
+        handleNumber(event.key);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleAdd, handleClear, handleBackspace, handleNumber, mode]);
+
   const numpadButtons = [
     '7', '8', '9',
     '4', '5', '6',
@@ -229,6 +270,21 @@ export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) 
         <Plus className="w-5 h-5" />
         ADD COUNT
       </button>
+
+      <div className="hidden sm:flex items-center justify-center gap-2 mt-3 text-[10px] uppercase tracking-wider text-text-secondary/60">
+        {mode === 'manual' && (
+          <>
+            <kbd className="px-1.5 py-0.5 rounded bg-surface-hover/50 font-mono">0-9</kbd>
+            <span>type</span>
+            <span className="opacity-50">·</span>
+          </>
+        )}
+        <kbd className="px-1.5 py-0.5 rounded bg-surface-hover/50 font-mono">Enter</kbd>
+        <span>add</span>
+        <span className="opacity-50">·</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-surface-hover/50 font-mono">Esc</kbd>
+        <span>clear</span>
+      </div>
     </div>
   );
 }

@@ -124,13 +124,20 @@ body {
 
 @keyframes confetti {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  20% {
     opacity: 1;
   }
   100% {
-    transform: translateY(-100px) rotate(720deg);
+    transform: translate(var(--tx, 0), var(--ty, -120px)) rotate(var(--tr, 720deg));
     opacity: 0;
   }
+}
+
+.animate-confetti {
+  animation: confetti 1100ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
 }
 
 @keyframes goal-complete-pulse {
@@ -202,7 +209,8 @@ body {
   .animate-badge-unlock,
   .animate-shimmer,
   .animate-goal-complete-pulse,
-  .animate-pop-in {
+  .animate-pop-in,
+  .animate-confetti {
     animation: none !important;
   }
 

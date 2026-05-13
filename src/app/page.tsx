@@ -20,6 +20,7 @@ import { KcalInput } from '@/components/KcalInput';
 import { LevelCard } from '@/components/LevelCard';
 import { NowPlaying } from '@/components/NowPlaying';
 import { StatsCards } from '@/components/StatsCards';
+import { TodayLog } from '@/components/TodayLog';
 import { TopTracks } from '@/components/TopTracks';
 import { WeeklyChart } from '@/components/WeeklyChart';
 
@@ -146,6 +147,7 @@ export default function Home() {
     newAchievements,
     addWorkout,
     clearNewAchievements,
+    deleteWorkout,
     getTodayStats,
     hydrateData,
     setDailyGoal,
@@ -777,6 +779,7 @@ export default function Home() {
           <div className="space-y-6">
             <Calculator onSubmit={handleAddReps} />
             <KcalInput onSubmit={handleAddKcal} />
+            <TodayLog workouts={workouts} onDelete={deleteWorkout} />
           </div>
 
           <div className="space-y-6">

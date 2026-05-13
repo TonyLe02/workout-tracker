@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
+
 // Components
 import { CountUp } from './CountUp';
 
@@ -18,7 +20,50 @@ interface LevelCardProps {
   isLevelUp?: boolean;
 }
 
+const CONFETTI_COLORS = ['#fbbf24', '#f97316', '#22c55e', '#3b82f6', '#a855f7', '#ef4444'];
+
+interface ConfettiParticle {
+  id: number;
+  color: string;
+  left: number;
+  tx: number;
+  ty: number;
+  tr: number;
+  delay: number;
+  size: number;
+}
+
+function generateConfetti(): ConfettiParticle[] {
+  return Array.from({ length: 18 }, (_, index) => {
+    const angle = (Math.PI / 18) * index - Math.PI / 2;
+    const distance = 90 + Math.random() * 70;
+    return {
+      id: index,
+      color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+      left: 50 + (Math.random() * 20 - 10),
+      tx: Math.cos(angle) * distance,
+      ty: Math.sin(angle) * distance - 20,
+      tr: (Math.random() - 0.5) * 1080,
+      delay: Math.random() * 120,
+      size: 6 + Math.random() * 4,
+    };
+  });
+}
+
 export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps) {
+  const [confettiBurst, setConfettiBurst] = useState(0);
+  const particles = useMemo<ConfettiParticle[]>(
+    () => (confettiBurst > 0 ? generateConfetti() : []),
+    [confettiBurst]
+  );
+
+  useEffect(() => {
+    if (!isLevelUp) return;
+    setConfettiBurst((value) => value + 1);
+    const timer = window.setTimeout(() => setConfettiBurst(0), 1300);
+    return () => window.clearTimeout(timer);
+  }, [isLevelUp]);
+
   const title = getLevelTitle(level);
   const xpForNext = getXPForNextLevel(level);
   const currentXP = getCurrentLevelXP(totalXP, level);
@@ -30,10 +75,34 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
   return (
     <div
       className={`
-        glass rounded-2xl p-6
+        glass rounded-2xl p-6 relative overflow-hidden
         ${isLevelUp ? 'animate-level-up' : ''}
       `}
     >
+      {particles.length > 0 && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-10"
+        >
+          {particles.map((particle) => (
+            <span
+              key={`${confettiBurst}-${particle.id}`}
+              className="absolute top-6 animate-confetti"
+              style={{
+                left: `${particle.left}%`,
+                width: `${particle.size}px`,
+                height: `${particle.size * 1.6}px`,
+                backgroundColor: particle.color,
+                borderRadius: '2px',
+                animationDelay: `${particle.delay}ms`,
+                ['--tx' as string]: `${particle.tx}px`,
+                ['--ty' as string]: `${particle.ty}px`,
+                ['--tr' as string]: `${particle.tr}deg`,
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="relative">

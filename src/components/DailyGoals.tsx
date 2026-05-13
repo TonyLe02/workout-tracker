@@ -8,7 +8,17 @@ import { ConfettiBurst } from './ConfettiBurst';
 import { ProgressRing } from './ProgressRing';
 
 // Icons
-import { Check, Dumbbell, Flame, Lightbulb, Settings, Target } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  Dumbbell,
+  Flame,
+  Lightbulb,
+  Minus,
+  Settings,
+  Target,
+} from 'lucide-react';
 
 interface DailyGoalsProps {
   currentReps: number;
@@ -17,7 +27,40 @@ interface DailyGoalsProps {
   goalKcal: number;
   avgReps?: number;
   avgKcal?: number;
+  yesterdayReps?: number;
+  yesterdayKcal?: number;
   onGoalChange?: (reps: number, kcal: number) => void;
+}
+
+interface DeltaPillProps {
+  current: number;
+  yesterday: number;
+}
+
+function DeltaPill({ current, yesterday }: DeltaPillProps) {
+  if (yesterday === 0 && current === 0) return null;
+
+  const delta = current - yesterday;
+  if (delta === 0) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] text-text-secondary/70">
+        <Minus className="w-2.5 h-2.5" />
+        same as yesterday
+      </span>
+    );
+  }
+
+  const isUp = delta > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-[10px] ${
+        isUp ? 'text-green-400/90' : 'text-red-400/90'
+      }`}
+    >
+      {isUp ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+      {Math.abs(delta).toLocaleString()} vs yesterday
+    </span>
+  );
 }
 
 function suggestGoal(avg: number): number {
@@ -34,6 +77,8 @@ export function DailyGoals({
   goalKcal,
   avgReps,
   avgKcal,
+  yesterdayReps,
+  yesterdayKcal,
   onGoalChange,
 }: DailyGoalsProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -201,6 +246,11 @@ export function DailyGoals({
             <Dumbbell className="w-4 h-4 text-green-500" />
             Reps
           </div>
+          {yesterdayReps !== undefined && (
+            <div className="mt-1">
+              <DeltaPill current={currentReps} yesterday={yesterdayReps} />
+            </div>
+          )}
           {repsComplete && (
             <div
               className={`text-xs text-success mt-1 ${
@@ -251,6 +301,11 @@ export function DailyGoals({
             <Flame className="w-4 h-4 text-orange-500" />
             Total kcal
           </div>
+          {yesterdayKcal !== undefined && (
+            <div className="mt-1">
+              <DeltaPill current={currentKcal} yesterday={yesterdayKcal} />
+            </div>
+          )}
           {kcalComplete && (
             <div
               className={`text-xs text-success mt-1 ${

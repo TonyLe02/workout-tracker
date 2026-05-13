@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 
 // Icons
-import { Clock, Delete, Dumbbell, Plus, RotateCcw } from 'lucide-react';
+import { Clock, Delete, Dumbbell, Plus, RefreshCcw, RotateCcw } from 'lucide-react';
 
 interface CalculatorProps {
   onSubmit: (reps: number) => void;
@@ -174,13 +174,23 @@ export function Calculator({ onSubmit, label = 'COUNT REPS', lastEntry }: Calcul
 
       {/* Last entry hint */}
       {showLastEntry && lastEntry && (
-        <div className="flex items-center justify-end gap-1.5 text-[11px] text-text-secondary/70 mb-1 -mt-1">
-          <Clock className="w-3 h-3" />
-          <span>
-            Last: <span className="text-text-primary/80 font-mono">+{lastEntry.reps.toLocaleString()}</span>
+        <div className="flex items-center justify-between gap-1.5 text-[11px] text-text-secondary/70 mb-1 -mt-1">
+          <button
+            type="button"
+            onClick={() => {
+              setDisplay(String(lastEntry.reps));
+              setChipHistory([]);
+            }}
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-surface-hover/40 hover:bg-surface-hover/70 text-text-secondary hover:text-text-primary transition-colors"
+            title="Fill display with last entry"
+          >
+            <RefreshCcw className="w-3 h-3" />
+            Repeat <span className="font-mono">+{lastEntry.reps.toLocaleString()}</span>
+          </button>
+          <span className="inline-flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatDistanceToNowStrict(lastEntry.timestamp, { addSuffix: true })}
           </span>
-          <span className="opacity-50">·</span>
-          <span>{formatDistanceToNowStrict(lastEntry.timestamp, { addSuffix: true })}</span>
         </div>
       )}
 

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
 // External libraries
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import type { User } from '@supabase/supabase-js';
 
 // Store/State management
@@ -45,10 +45,11 @@ import {
 
 // Types/Interfaces
 import { ACHIEVEMENTS } from '@/data/achievements';
+import { XP_PER_REP } from '@/types/workout';
 import type { DailyGoal, WorkoutEntry } from '@/types/workout';
 
 // Icons
-import { Cloud, CloudCheck, Dumbbell, Loader2, LogOut, Pencil } from 'lucide-react';
+import { Cloud, CloudCheck, Download, Dumbbell, Loader2, LogOut, Pencil } from 'lucide-react';
 
 type SyncStatus = 'local' | 'syncing' | 'synced' | 'error';
 
@@ -527,8 +528,10 @@ export default function Home() {
       totalKcal: 0,
     });
 
+    const xpEarned = Math.round(reps * XP_PER_REP);
     showToast({
       message: `Added ${reps.toLocaleString()} reps`,
+      detail: `+${xpEarned.toLocaleString()} XP`,
       action: {
         label: 'Undo',
         onClick: () => deleteWorkout(entry.id),
@@ -643,6 +646,32 @@ export default function Home() {
       console.error('Failed to sign out of Supabase:', error);
       setSyncStatus('error');
     }
+  };
+
+  const handleExportData = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      schema: 'workout-tracker.v1',
+      userName: userName.trim() || null,
+      dailyGoal,
+      workouts,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `workout-tracker-${format(new Date(), 'yyyy-MM-dd')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast({
+      message: 'Data exported',
+      detail: `${workouts.length.toLocaleString()} entries saved to JSON`,
+    });
   };
 
   const handleManualRefetch = async () => {
@@ -764,6 +793,19 @@ export default function Home() {
 
   const sevenDayAverages = average7DayPerDay(workouts, new Date());
 
+  const yesterdayStats = (() => {
+    const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    const yesterdayWorkouts = workouts.filter((w) => w.date === yesterdayStr);
+    const reps = yesterdayWorkouts.reduce((sum, w) => sum + w.reps, 0);
+    const latestActive = yesterdayWorkouts
+      .filter((w) => w.activeKcal > 0)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal ?? 0;
+    const latestTotal = yesterdayWorkouts
+      .filter((w) => w.totalKcal > 0)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal ?? 0;
+    return { reps, kcal: Math.max(latestActive, latestTotal) };
+  })();
+
   const lastRepsEntry = (() => {
     let latest: WorkoutEntry | null = null;
     for (const entry of workouts) {
@@ -874,6 +916,16 @@ export default function Home() {
                     Sync
                   </button>
                 ))}
+
+              <button
+                onClick={handleExportData}
+                disabled={workouts.length === 0}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-[11px] uppercase tracking-wide text-white/80 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Download your data as JSON"
+              >
+                <Download className="w-3 h-3" />
+                Export
+              </button>
             </div>
 
             <div className="flex sm:hidden items-center gap-1">
@@ -921,6 +973,15 @@ export default function Home() {
                     <Cloud className="w-3.5 h-3.5" />
                   </button>
                 ))}
+
+              <button
+                onClick={handleExportData}
+                disabled={workouts.length === 0}
+                className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors flex items-center justify-center text-white/80 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Export data as JSON"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             <button
@@ -978,6 +1039,8 @@ export default function Home() {
               goalKcal={dailyGoal.activeKcal}
               avgReps={sevenDayAverages.reps}
               avgKcal={sevenDayAverages.kcal}
+              yesterdayReps={yesterdayStats.reps}
+              yesterdayKcal={yesterdayStats.kcal}
               onGoalChange={(reps, kcal) =>
                 setDailyGoal({ reps, activeKcal: kcal })
               }

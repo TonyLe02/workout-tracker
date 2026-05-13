@@ -1,7 +1,7 @@
 'use client';
 
 // React/Next.js
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 // Icons
 import {
@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Search,
+  X,
 } from 'lucide-react';
 
 // Types/Interfaces
@@ -71,23 +73,42 @@ interface AchievementsGridProps {
 }
 
 const PAGE_SIZE = 12;
+const TIER_ORDER: Record<string, number> = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
 
 export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: AchievementsGridProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
+  const [search, setSearch] = useState('');
 
-  // Sort achievements: unlocked first, then by tier (diamond, gold, silver, bronze)
-  const tierOrder = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
-  const sortedAchievements = [...ACHIEVEMENTS].sort((a, b) => {
-    const aUnlocked = unlockedIds.includes(a.id);
-    const bUnlocked = unlockedIds.includes(b.id);
+  const sortedAchievements = useMemo(() => {
+    const sorted = [...ACHIEVEMENTS].sort((a, b) => {
+      const aUnlocked = unlockedIds.includes(a.id);
+      const bUnlocked = unlockedIds.includes(b.id);
 
-    if (aUnlocked !== bUnlocked) return bUnlocked ? 1 : -1;
-    return tierOrder[a.tier] - tierOrder[b.tier];
-  });
+      if (aUnlocked !== bUnlocked) return bUnlocked ? 1 : -1;
+      return TIER_ORDER[a.tier] - TIER_ORDER[b.tier];
+    });
+
+    const query = search.trim().toLowerCase();
+    if (!query) return sorted;
+
+    return sorted.filter((achievement) => {
+      return (
+        achievement.name.toLowerCase().includes(query) ||
+        achievement.description.toLowerCase().includes(query) ||
+        achievement.tier.toLowerCase().includes(query)
+      );
+    });
+  }, [search, unlockedIds]);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [search]);
 
   const unlockedCount = unlockedIds.length;
   const totalCount = ACHIEVEMENTS.length;
+  const filteredCount = sortedAchievements.length;
+  const isSearching = search.trim().length > 0;
 
   const totalPages = Math.max(1, Math.ceil(sortedAchievements.length / PAGE_SIZE));
   const visibleAchievements = sortedAchievements.slice(
@@ -131,6 +152,33 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
       {/* Achievement Grid */}
       {isExpanded && (
         <>
+          <div className="relative mt-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary/60 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search achievements…"
+              className="w-full pl-9 pr-9 py-2 rounded-xl bg-surface-hover/40 border border-border/60 text-sm text-text-primary placeholder-text-secondary/50 focus:outline-none focus:border-border-hover"
+            />
+            {isSearching && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-text-secondary/60 hover:text-text-primary hover:bg-white/5 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {isSearching && (
+            <div className="text-xs text-text-secondary mt-2">
+              {filteredCount === 0
+                ? 'No matches'
+                : `${filteredCount} ${filteredCount === 1 ? 'match' : 'matches'}`}
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
             {visibleAchievements.map((achievement) => (
               <AchievementBadge

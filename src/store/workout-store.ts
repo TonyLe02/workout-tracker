@@ -21,6 +21,7 @@ interface WorkoutStore {
   // Actions
   addWorkout: (workout: Omit<WorkoutEntry, 'id' | 'timestamp'>) => WorkoutEntry;
   deleteWorkout: (id: string) => void;
+  editWorkout: (id: string, updates: Partial<Pick<WorkoutEntry, 'reps' | 'activeKcal' | 'totalKcal'>>) => void;
   hydrateData: (data: { workouts: WorkoutEntry[]; dailyGoal: DailyGoal }) => void;
   setDailyGoal: (goal: DailyGoal) => void;
   clearNewAchievements: () => void;
@@ -141,6 +142,20 @@ export const useWorkoutStore = create<WorkoutStore>()(
       deleteWorkout: (id) => {
         set((state) => {
           const workouts = state.workouts.filter((workout) => workout.id !== id);
+
+          return {
+            workouts,
+            stats: calculateStatsFromWorkouts(workouts),
+            newAchievements: [],
+          };
+        });
+      },
+
+      editWorkout: (id, updates) => {
+        set((state) => {
+          const workouts = state.workouts.map((workout) =>
+            workout.id === id ? { ...workout, ...updates } : workout
+          );
 
           return {
             workouts,

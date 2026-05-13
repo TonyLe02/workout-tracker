@@ -40,6 +40,9 @@ export function MobileQuickAdd({ target, onAdd }: MobileQuickAddProps) {
   }, []);
 
   const handleTap = (amount: number) => {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(15);
+    }
     onAdd(amount);
     setPressedChip(amount);
     if (pressTimerRef.current !== null) {

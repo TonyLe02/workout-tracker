@@ -49,7 +49,7 @@ import { XP_PER_REP } from '@/types/workout';
 import type { DailyGoal, WorkoutEntry } from '@/types/workout';
 
 // Icons
-import { Cloud, CloudCheck, Download, Dumbbell, Loader2, LogOut, Pencil } from 'lucide-react';
+import { Cloud, CloudCheck, Download, Dumbbell, Loader2, LogOut, Pencil, Upload } from 'lucide-react';
 
 type SyncStatus = 'local' | 'syncing' | 'synced' | 'error';
 
@@ -230,6 +230,7 @@ export default function Home() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeName, setWelcomeName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const calculatorSentinelRef = useRef<HTMLDivElement>(null);
   const hasHydratedRemoteDataRef = useRef(false);
   const isManualSyncingRef = useRef(false);
@@ -244,6 +245,7 @@ export default function Home() {
     addWorkout,
     clearNewAchievements,
     deleteWorkout,
+    editWorkout,
     getTodayStats,
     hydrateData,
     setDailyGoal,
@@ -648,6 +650,76 @@ export default function Home() {
     }
   };
 
+  const handleImportClick = () => {
+    importInputRef.current?.click();
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as {
+        schema?: string;
+        userName?: string | null;
+        dailyGoal?: DailyGoal;
+        workouts?: WorkoutEntry[];
+      };
+
+      if (!Array.isArray(parsed.workouts)) {
+        throw new Error('Missing workouts array');
+      }
+
+      const sanitizedWorkouts: WorkoutEntry[] = parsed.workouts
+        .filter(
+          (entry): entry is WorkoutEntry =>
+            entry !== null &&
+            typeof entry === 'object' &&
+            typeof entry.id === 'string' &&
+            typeof entry.date === 'string' &&
+            typeof entry.timestamp === 'number' &&
+            typeof entry.reps === 'number' &&
+            typeof entry.activeKcal === 'number' &&
+            typeof entry.totalKcal === 'number'
+        );
+
+      const currentState = useWorkoutStore.getState();
+      const mergedWorkouts = mergeWorkouts(currentState.workouts, sanitizedWorkouts);
+      const importedAdded = mergedWorkouts.length - currentState.workouts.length;
+
+      const nextGoal: DailyGoal = parsed.dailyGoal &&
+        typeof parsed.dailyGoal.reps === 'number' &&
+        typeof parsed.dailyGoal.activeKcal === 'number'
+        ? parsed.dailyGoal
+        : currentState.dailyGoal;
+
+      hydrateData({ workouts: mergedWorkouts, dailyGoal: nextGoal });
+
+      if (typeof parsed.userName === 'string' && parsed.userName.trim() && !userName.trim()) {
+        const trimmed = parsed.userName.trim();
+        setUserName(trimmed);
+        localStorage.setItem('user_name', trimmed);
+      }
+
+      showToast({
+        message: 'Data imported',
+        detail:
+          importedAdded > 0
+            ? `${importedAdded.toLocaleString()} new ${importedAdded === 1 ? 'entry' : 'entries'} merged`
+            : 'No new entries — everything was already present',
+      });
+    } catch (error) {
+      console.error('Failed to import data:', error);
+      showToast({
+        tone: 'info',
+        message: 'Import failed',
+        detail: 'That file does not look like a valid backup.',
+      });
+    }
+  };
+
   const handleExportData = () => {
     const payload = {
       exportedAt: new Date().toISOString(),
@@ -834,6 +906,13 @@ export default function Home() {
             accept="image/*"
             className="hidden"
           />
+          <input
+            type="file"
+            ref={importInputRef}
+            onChange={handleImportFile}
+            accept="application/json"
+            className="hidden"
+          />
 
           <div className="flex flex-col leading-tight min-w-0">
             <h1 className="font-display text-lg sm:text-3xl font-semibold tracking-tight text-white leading-tight inline-flex items-baseline flex-wrap gap-x-1.5">
@@ -926,6 +1005,15 @@ export default function Home() {
                 <Download className="w-3 h-3" />
                 Export
               </button>
+
+              <button
+                onClick={handleImportClick}
+                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-[11px] uppercase tracking-wide text-white/80 hover:text-white"
+                title="Import data from JSON backup"
+              >
+                <Upload className="w-3 h-3" />
+                Import
+              </button>
             </div>
 
             <div className="flex sm:hidden items-center gap-1">
@@ -982,6 +1070,14 @@ export default function Home() {
               >
                 <Download className="w-3.5 h-3.5" />
               </button>
+
+              <button
+                onClick={handleImportClick}
+                className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors flex items-center justify-center text-white/80 hover:text-white"
+                title="Import data from JSON backup"
+              >
+                <Upload className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             <button
@@ -1012,7 +1108,7 @@ export default function Home() {
               <Calculator onSubmit={handleAddReps} lastEntry={lastRepsEntry} />
             </div>
             <KcalInput onSubmit={handleAddKcal} />
-            <TodayLog workouts={workouts} onDelete={deleteWorkout} />
+            <TodayLog workouts={workouts} onDelete={deleteWorkout} onEdit={editWorkout} />
           </div>
 
           <div className="space-y-6">

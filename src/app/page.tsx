@@ -48,7 +48,7 @@ import {
 
 // Types/Interfaces
 import { ACHIEVEMENTS } from '@/data/achievements';
-import { XP_PER_REP } from '@/types/workout';
+import { XP_PER_ACTIVE_KCAL, XP_PER_REP } from '@/types/workout';
 import type { DailyGoal, WorkoutEntry } from '@/types/workout';
 
 // Icons
@@ -338,6 +338,27 @@ export default function Home() {
       setCurrentPopupIndex(0);
     }
   }, [mounted, newAchievements]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const todayStats = getTodayStats();
+    const repsHit = dailyGoal.reps > 0 && todayStats.reps >= dailyGoal.reps;
+    const kcalHit = dailyGoal.activeKcal > 0 && todayStats.kcal >= dailyGoal.activeKcal;
+    if (!repsHit || !kcalHit) return;
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const storageKey = 'both_goals_celebrated';
+    if (localStorage.getItem(storageKey) === today) return;
+
+    localStorage.setItem(storageKey, today);
+    setPrConfettiTrigger((value) => value + 1);
+    showToast({
+      tone: 'celebrate',
+      message: 'Daily goals crushed!',
+      detail: "Both rings complete — that's a wrap on today.",
+      durationMs: 7000,
+    });
+  }, [mounted, workouts, dailyGoal, getTodayStats]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -1164,6 +1185,9 @@ export default function Home() {
               level={stats.level}
               totalXP={stats.totalXP}
               isLevelUp={isLevelUp}
+              todayXP={Math.round(
+                todayStats.reps * XP_PER_REP + todayStats.kcal * XP_PER_ACTIVE_KCAL
+              )}
             />
             <WeeklyChart workouts={workouts} />
             <PersonalBests workouts={workouts} />

@@ -11,15 +11,16 @@ import { getLevelTier, hexWithAlpha } from '@/lib/tiers';
 import { getLevelTitle, getXPForNextLevel, getCurrentLevelXP } from '@/types/workout';
 
 // Icons
-import { BicepsFlexed, Star } from 'lucide-react';
+import { BicepsFlexed, Sparkles, Star } from 'lucide-react';
 
 interface LevelCardProps {
   level: number;
   totalXP: number;
   isLevelUp?: boolean;
+  todayXP?: number;
 }
 
-export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps) {
+export function LevelCard({ level, totalXP, isLevelUp = false, todayXP = 0 }: LevelCardProps) {
 
   const title = getLevelTitle(level);
   const xpForNext = getXPForNextLevel(level);
@@ -58,7 +59,7 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
           </div>
         </div>
         <div className="text-right">
-          <div className="flex items-center gap-1 text-text-secondary text-sm">
+          <div className="flex items-center gap-1 text-text-secondary text-sm justify-end">
             <BicepsFlexed className="w-4 h-4" />
             Total XP
           </div>
@@ -68,6 +69,12 @@ export function LevelCard({ level, totalXP, isLevelUp = false }: LevelCardProps)
           >
             <CountUp value={totalXP} />
           </div>
+          {todayXP > 0 && (
+            <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-yellow-500/10 ring-1 ring-yellow-500/20 text-[11px] text-yellow-400 font-medium">
+              <Sparkles className="w-3 h-3" />
+              +{todayXP.toLocaleString()} today
+            </div>
+          )}
         </div>
       </div>
 

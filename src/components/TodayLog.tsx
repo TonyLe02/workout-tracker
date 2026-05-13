@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 
 import { Check, Clock, Dumbbell, Flame, Heart, Pencil, Trash2, X, Zap } from 'lucide-react';
 
 import type { WorkoutEntry } from '@/types/workout';
+
+type DayTab = 'today' | 'yesterday';
 
 interface TodayLogProps {
   workouts: WorkoutEntry[];
@@ -45,14 +47,27 @@ function describeEntry(entry: WorkoutEntry) {
 }
 
 export function TodayLog({ workouts, onDelete, onEdit }: TodayLogProps) {
+  const [activeTab, setActiveTab] = useState<DayTab>('today');
+
   const today = format(new Date(), 'yyyy-MM-dd');
+  const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  const targetDate = activeTab === 'today' ? today : yesterday;
+
+  const todayCount = useMemo(
+    () => workouts.filter((w) => w.date === today).length,
+    [workouts, today]
+  );
+  const yesterdayCount = useMemo(
+    () => workouts.filter((w) => w.date === yesterday).length,
+    [workouts, yesterday]
+  );
 
   const todaysEntries = useMemo(
     () =>
       workouts
-        .filter((workout) => workout.date === today)
+        .filter((workout) => workout.date === targetDate)
         .sort((leftEntry, rightEntry) => rightEntry.timestamp - leftEntry.timestamp),
-    [workouts, today]
+    [workouts, targetDate]
   );
 
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -106,28 +121,57 @@ export function TodayLog({ workouts, onDelete, onEdit }: TodayLogProps) {
 
   return (
     <div className="glass rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
-          <span className="text-xs text-text-secondary uppercase tracking-wider">
-            Today&apos;s Log
+          <span className="text-xs text-text-secondary uppercase tracking-wider truncate">
+            Log
           </span>
         </div>
         {todaysEntries.length > 0 && (
-          <span className="text-[11px] uppercase tracking-wider text-text-secondary/70">
+          <span className="text-[11px] uppercase tracking-wider text-text-secondary/70 flex-shrink-0">
             {todaysEntries.length} {todaysEntries.length === 1 ? 'entry' : 'entries'}
           </span>
         )}
+      </div>
+
+      <div className="flex gap-1 bg-surface-hover/50 rounded-lg p-1 mb-4">
+        {(['today', 'yesterday'] as DayTab[]).map((tab) => {
+          const count = tab === 'today' ? todayCount : yesterdayCount;
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 px-2 py-1 text-xs rounded-md transition-all flex items-center justify-center gap-1.5 ${
+                activeTab === tab
+                  ? 'bg-white/10 text-white'
+                  : 'text-text-secondary hover:text-white'
+              }`}
+            >
+              <span className="capitalize">{tab}</span>
+              {count > 0 && (
+                <span className="text-[10px] font-mono text-text-secondary/70">
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {todaysEntries.length === 0 ? (
         <div className="py-8 text-center">
           <Heart className="w-8 h-8 mx-auto mb-2 text-text-secondary/30" />
           <p className="text-sm text-text-secondary/70">
-            Nothing logged yet today.
+            {activeTab === 'today'
+              ? 'Nothing logged yet today.'
+              : 'Nothing was logged yesterday.'}
           </p>
           <p className="text-xs text-text-secondary/50 mt-1">
-            Add reps or calories above to get started.
+            {activeTab === 'today'
+              ? 'Add reps or calories above to get started.'
+              : 'Switch to Today to start logging now.'}
           </p>
         </div>
       ) : (

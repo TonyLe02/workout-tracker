@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 
-import { Crown, Dumbbell, Flame } from 'lucide-react';
+import { Clock, Crown, Dumbbell, Flame } from 'lucide-react';
 
 import type { WorkoutEntry } from '@/types/workout';
 
@@ -21,6 +21,34 @@ function formatDate(dateStr: string): string {
   if (isToday(parsed)) return 'Today';
   if (isYesterday(parsed)) return 'Yesterday';
   return format(parsed, 'MMM d');
+}
+
+function formatHour(hour: number): string {
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  const suffix = hour < 12 ? 'am' : 'pm';
+  return `${h12}${suffix}`;
+}
+
+function findPeakHour(workouts: WorkoutEntry[]): { hour: number | null; count: number } {
+  if (workouts.length === 0) return { hour: null, count: 0 };
+
+  const buckets = new Array<number>(24).fill(0);
+  for (const workout of workouts) {
+    if (workout.reps <= 0 && workout.activeKcal <= 0 && workout.totalKcal <= 0) continue;
+    const hour = new Date(workout.timestamp).getHours();
+    buckets[hour] += 1;
+  }
+
+  let bestHour = -1;
+  let bestCount = 0;
+  for (let i = 0; i < 24; i++) {
+    if (buckets[i] > bestCount) {
+      bestCount = buckets[i];
+      bestHour = i;
+    }
+  }
+
+  return bestHour === -1 ? { hour: null, count: 0 } : { hour: bestHour, count: bestCount };
 }
 
 function findBests(workouts: WorkoutEntry[]): { reps: DailyRecord; kcal: DailyRecord } {
@@ -101,6 +129,7 @@ function RecordRow({ icon: Icon, iconColor, label, record, unit }: RecordRowProp
 
 export function PersonalBests({ workouts }: PersonalBestsProps) {
   const bests = useMemo(() => findBests(workouts), [workouts]);
+  const peakHour = useMemo(() => findPeakHour(workouts), [workouts]);
 
   return (
     <div className="glass rounded-2xl p-6">
@@ -125,6 +154,26 @@ export function PersonalBests({ workouts }: PersonalBestsProps) {
           record={bests.kcal}
           unit="kcal"
         />
+        <div className="flex items-center gap-3 rounded-xl bg-surface-hover/40 px-3 py-2.5">
+          <Clock className="w-4 h-4 flex-shrink-0 text-blue-400" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase tracking-wider text-text-secondary/70">
+              Most Active Hour
+            </div>
+            {peakHour.hour !== null ? (
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-lg font-bold text-text-primary font-mono">
+                  {formatHour(peakHour.hour)}
+                </span>
+                <span className="text-[11px] text-text-secondary">
+                  {peakHour.count} {peakHour.count === 1 ? 'entry' : 'entries'}
+                </span>
+              </div>
+            ) : (
+              <div className="text-sm text-text-secondary/60 mt-0.5">No pattern yet</div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

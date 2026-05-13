@@ -18,6 +18,7 @@ import { ConfettiBurst } from '@/components/ConfettiBurst';
 import { DailyGoals } from '@/components/DailyGoals';
 import { HeatmapCard } from '@/components/HeatmapCard';
 import { KcalInput } from '@/components/KcalInput';
+import { KeyboardHelp } from '@/components/KeyboardHelp';
 import { LevelCard } from '@/components/LevelCard';
 import { MobileQuickAdd } from '@/components/MobileQuickAdd';
 import { NowPlaying } from '@/components/NowPlaying';
@@ -236,6 +237,7 @@ export default function Home() {
   const isManualSyncingRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
   const [prConfettiTrigger, setPrConfettiTrigger] = useState(0);
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
 
   const {
     workouts,
@@ -335,6 +337,28 @@ export default function Home() {
       setCurrentPopupIndex(0);
     }
   }, [mounted, newAchievements]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    function handleHelpShortcut(event: KeyboardEvent) {
+      if (event.key !== '?') return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      setShowKeyboardHelp((current) => !current);
+    }
+
+    window.addEventListener('keydown', handleHelpShortcut);
+    return () => window.removeEventListener('keydown', handleHelpShortcut);
+  }, [mounted]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -944,8 +968,22 @@ export default function Home() {
               )}
             </h1>
 
-            <p className="text-xs sm:text-sm text-text-secondary leading-tight mt-1">
-              {format(new Date(), 'EEEE, MMMM d')}
+            <p className="text-xs sm:text-sm text-text-secondary leading-tight mt-1 flex items-center gap-1.5 flex-wrap">
+              <span>{format(new Date(), 'EEEE, MMMM d')}</span>
+              {(todayStats.reps > 0 || todayStats.kcal > 0) && (
+                <span className="sm:hidden inline-flex items-center gap-1.5 text-text-primary/90">
+                  <span className="opacity-50">·</span>
+                  {todayStats.reps > 0 && (
+                    <span className="font-mono">{todayStats.reps.toLocaleString()} reps</span>
+                  )}
+                  {todayStats.reps > 0 && todayStats.kcal > 0 && (
+                    <span className="opacity-50">·</span>
+                  )}
+                  {todayStats.kcal > 0 && (
+                    <span className="font-mono">{todayStats.kcal.toLocaleString()} kcal</span>
+                  )}
+                </span>
+              )}
             </p>
           </div>
 
@@ -1182,6 +1220,10 @@ export default function Home() {
       </div>
 
       <MobileQuickAdd target={calculatorSentinelRef} onAdd={handleAddReps} />
+      <KeyboardHelp
+        open={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+      />
       <Toaster />
     </main>
   );

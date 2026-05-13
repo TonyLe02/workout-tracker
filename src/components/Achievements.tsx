@@ -75,10 +75,21 @@ interface AchievementsGridProps {
 const PAGE_SIZE = 12;
 const TIER_ORDER: Record<string, number> = { diamond: 0, gold: 1, silver: 2, bronze: 3 };
 
+type TierFilter = 'all' | 'bronze' | 'silver' | 'gold' | 'diamond';
+
+const TIER_FILTERS: { value: TierFilter; label: string; chip: string }[] = [
+  { value: 'all', label: 'All', chip: 'bg-white/10 text-text-primary ring-white/20' },
+  { value: 'bronze', label: 'Bronze', chip: 'bg-amber-700/15 text-amber-500 ring-amber-700/30' },
+  { value: 'silver', label: 'Silver', chip: 'bg-slate-400/15 text-slate-300 ring-slate-400/30' },
+  { value: 'gold', label: 'Gold', chip: 'bg-yellow-500/15 text-yellow-400 ring-yellow-500/30' },
+  { value: 'diamond', label: 'Diamond', chip: 'bg-cyan-400/15 text-cyan-300 ring-cyan-400/30' },
+];
+
 export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: AchievementsGridProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [search, setSearch] = useState('');
+  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
 
   const sortedAchievements = useMemo(() => {
     const sorted = [...ACHIEVEMENTS].sort((a, b) => {
@@ -90,25 +101,26 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
     });
 
     const query = search.trim().toLowerCase();
-    if (!query) return sorted;
-
     return sorted.filter((achievement) => {
+      if (tierFilter !== 'all' && achievement.tier !== tierFilter) return false;
+      if (!query) return true;
       return (
         achievement.name.toLowerCase().includes(query) ||
         achievement.description.toLowerCase().includes(query) ||
         achievement.tier.toLowerCase().includes(query)
       );
     });
-  }, [search, unlockedIds]);
+  }, [search, tierFilter, unlockedIds]);
 
   useEffect(() => {
     setCurrentPage(0);
-  }, [search]);
+  }, [search, tierFilter]);
 
   const unlockedCount = unlockedIds.length;
   const totalCount = ACHIEVEMENTS.length;
   const filteredCount = sortedAchievements.length;
   const isSearching = search.trim().length > 0;
+  const isFiltering = isSearching || tierFilter !== 'all';
 
   const totalPages = Math.max(1, Math.ceil(sortedAchievements.length / PAGE_SIZE));
   const visibleAchievements = sortedAchievements.slice(
@@ -172,7 +184,26 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
               </button>
             )}
           </div>
-          {isSearching && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-3">
+            {TIER_FILTERS.map((option) => {
+              const active = tierFilter === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setTierFilter(option.value)}
+                  className={`text-[11px] font-medium uppercase tracking-wider px-2.5 py-1 rounded-full ring-1 transition-colors ${
+                    active
+                      ? option.chip
+                      : 'bg-surface-hover/40 text-text-secondary ring-border hover:text-text-primary'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          {isFiltering && (
             <div className="text-xs text-text-secondary mt-2">
               {filteredCount === 0
                 ? 'No matches'

@@ -19,7 +19,7 @@ interface WorkoutStore {
   newAchievements: string[]; // For showing unlock animations
 
   // Actions
-  addWorkout: (workout: Omit<WorkoutEntry, 'id' | 'timestamp'>) => void;
+  addWorkout: (workout: Omit<WorkoutEntry, 'id' | 'timestamp'>) => WorkoutEntry;
   deleteWorkout: (id: string) => void;
   hydrateData: (data: { workouts: WorkoutEntry[]; dailyGoal: DailyGoal }) => void;
   setDailyGoal: (goal: DailyGoal) => void;
@@ -134,6 +134,8 @@ export const useWorkoutStore = create<WorkoutStore>()(
             newAchievements: [...state.newAchievements, ...newUnlocked],
           };
         });
+
+        return workout;
       },
 
       deleteWorkout: (id) => {

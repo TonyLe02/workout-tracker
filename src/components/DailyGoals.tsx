@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 // Components
+import { ConfettiBurst } from './ConfettiBurst';
 import { ProgressRing } from './ProgressRing';
 
 // Icons
@@ -119,7 +120,19 @@ export function DailyGoals({
         </div>
       ) : (
 
-      <div className="flex items-center justify-around">
+      <div className="relative flex items-center justify-around">
+        <ConfettiBurst
+          trigger={repsCelebrating ? `reps-${currentReps}` : false}
+          spread={100}
+          count={14}
+          className="left-0 right-1/2"
+        />
+        <ConfettiBurst
+          trigger={kcalCelebrating ? `kcal-${currentKcal}` : false}
+          spread={100}
+          count={14}
+          className="left-1/2 right-0"
+        />
         {/* Reps Goal */}
         <div className="flex flex-col items-center">
           <div

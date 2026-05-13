@@ -3,12 +3,16 @@
 // React/Next.js
 import { useState, useEffect, useCallback } from 'react';
 
+// External libraries
+import { formatDistanceToNowStrict } from 'date-fns';
+
 // Icons
-import { Delete, Dumbbell, Plus, RotateCcw } from 'lucide-react';
+import { Clock, Delete, Dumbbell, Plus, RotateCcw } from 'lucide-react';
 
 interface CalculatorProps {
   onSubmit: (reps: number) => void;
   label?: string;
+  lastEntry?: { reps: number; timestamp: number } | null;
 }
 
 type Mode = 'manual' | 'quick';
@@ -17,11 +21,21 @@ const REP_CHIPS = [1, 5, 10, 25, 50, 100];
 const MODE_STORAGE_KEY = 'calculator_reps_mode';
 const MAX_VALUE = 999999;
 
-export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) {
+export function Calculator({ onSubmit, label = 'COUNT REPS', lastEntry }: CalculatorProps) {
   const [display, setDisplay] = useState('0');
   const [chipHistory, setChipHistory] = useState<number[]>([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [mode, setMode] = useState<Mode>('manual');
+  const [, setNowTick] = useState(0);
+
+  useEffect(() => {
+    if (!lastEntry) return;
+    const interval = window.setInterval(() => setNowTick((value) => value + 1), 30_000);
+    return () => window.clearInterval(interval);
+  }, [lastEntry]);
+
+  const lastEntryAgeMs = lastEntry ? Date.now() - lastEntry.timestamp : null;
+  const showLastEntry = lastEntry && lastEntryAgeMs !== null && lastEntryAgeMs < 30 * 60 * 1000;
 
   useEffect(() => {
     const saved = localStorage.getItem(MODE_STORAGE_KEY);
@@ -157,6 +171,18 @@ export function Calculator({ onSubmit, label = 'COUNT REPS' }: CalculatorProps) 
           ))}
         </div>
       </div>
+
+      {/* Last entry hint */}
+      {showLastEntry && lastEntry && (
+        <div className="flex items-center justify-end gap-1.5 text-[11px] text-text-secondary/70 mb-1 -mt-1">
+          <Clock className="w-3 h-3" />
+          <span>
+            Last: <span className="text-text-primary/80 font-mono">+{lastEntry.reps.toLocaleString()}</span>
+          </span>
+          <span className="opacity-50">·</span>
+          <span>{formatDistanceToNowStrict(lastEntry.timestamp, { addSuffix: true })}</span>
+        </div>
+      )}
 
       {/* Display */}
       <div

@@ -19,7 +19,9 @@ import { HeatmapCard } from '@/components/HeatmapCard';
 import { KcalInput } from '@/components/KcalInput';
 import { LevelCard } from '@/components/LevelCard';
 import { NowPlaying } from '@/components/NowPlaying';
+import { PersonalBests } from '@/components/PersonalBests';
 import { StatsCards } from '@/components/StatsCards';
+import { Toaster, showToast } from '@/components/Toaster';
 import { TodayLog } from '@/components/TodayLog';
 import { TopTracks } from '@/components/TopTracks';
 import { WeeklyChart } from '@/components/WeeklyChart';
@@ -119,6 +121,57 @@ function getGreeting() {
   if (hour < 17) return 'Good afternoon';
   if (hour < 22) return 'Good evening';
   return 'Working late';
+}
+
+function previousBestPerDay(
+  workouts: WorkoutEntry[],
+  excludeDate: string
+): { bestReps: number; bestKcal: number } {
+  const grouped: Record<string, WorkoutEntry[]> = {};
+
+  for (const workout of workouts) {
+    if (workout.date === excludeDate) continue;
+    if (!grouped[workout.date]) grouped[workout.date] = [];
+    grouped[workout.date].push(workout);
+  }
+
+  let bestReps = 0;
+  let bestKcal = 0;
+
+  for (const date of Object.keys(grouped)) {
+    const entries = grouped[date];
+    const reps = entries.reduce((sum, entry) => sum + entry.reps, 0);
+    const latestActive = entries
+      .filter((entry) => entry.activeKcal > 0)
+      .sort((leftEntry, rightEntry) => rightEntry.timestamp - leftEntry.timestamp)[0]
+      ?.activeKcal ?? 0;
+    const latestTotal = entries
+      .filter((entry) => entry.totalKcal > 0)
+      .sort((leftEntry, rightEntry) => rightEntry.timestamp - leftEntry.timestamp)[0]
+      ?.totalKcal ?? 0;
+    const kcal = Math.max(latestActive, latestTotal);
+
+    if (reps > bestReps) bestReps = reps;
+    if (kcal > bestKcal) bestKcal = kcal;
+  }
+
+  return { bestReps, bestKcal };
+}
+
+function celebratePRIfNew(metric: 'reps' | 'kcal', value: number, today: string) {
+  const storageKey = `pr_celebrated_${metric}`;
+  const lastDate = localStorage.getItem(storageKey);
+  if (lastDate === today) return;
+
+  localStorage.setItem(storageKey, today);
+  const label = metric === 'reps' ? 'reps' : 'kcal';
+
+  showToast({
+    tone: 'celebrate',
+    message: `New personal best!`,
+    detail: `${value.toLocaleString()} ${label} today — your best day ever.`,
+    durationMs: 6000,
+  });
 }
 
 export default function Home() {
@@ -237,6 +290,21 @@ export default function Home() {
       setCurrentPopupIndex(0);
     }
   }, [mounted, newAchievements]);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const todayStats = getTodayStats();
+    const baseTitle = 'Workout Tracker | Level Up Your Fitness';
+
+    const segments: string[] = [];
+    if (todayStats.reps > 0) segments.push(`${todayStats.reps.toLocaleString()} reps`);
+    if (todayStats.kcal > 0) segments.push(`${todayStats.kcal.toLocaleString()} kcal`);
+
+    document.title = segments.length > 0
+      ? `${segments.join(' · ')} · Workout Tracker`
+      : baseTitle;
+  }, [mounted, workouts, getTodayStats]);
 
   useEffect(() => {
     if (!mounted || !authReady) {
@@ -404,24 +472,65 @@ export default function Home() {
 
   const handleAddReps = (reps: number) => {
     const today = format(new Date(), 'yyyy-MM-dd');
+    const snapshot = useWorkoutStore.getState().workouts;
+    const { bestReps } = previousBestPerDay(snapshot, today);
+    const previousRepsToday = snapshot
+      .filter((entry) => entry.date === today)
+      .reduce((sum, entry) => sum + entry.reps, 0);
 
-    addWorkout({
+    const entry = addWorkout({
       date: today,
       reps,
       activeKcal: 0,
       totalKcal: 0,
     });
+
+    showToast({
+      message: `Added ${reps.toLocaleString()} reps`,
+      action: {
+        label: 'Undo',
+        onClick: () => deleteWorkout(entry.id),
+      },
+    });
+
+    const newRepsToday = previousRepsToday + reps;
+    if (bestReps > 0 && previousRepsToday <= bestReps && newRepsToday > bestReps) {
+      celebratePRIfNew('reps', newRepsToday, today);
+    }
   };
 
   const handleAddKcal = (activeKcal: number, totalKcal: number) => {
     const today = format(new Date(), 'yyyy-MM-dd');
+    const snapshot = useWorkoutStore.getState().workouts;
+    const { bestKcal } = previousBestPerDay(snapshot, today);
+    const previousTodayStats = getTodayStats();
+    const previousKcalToday = previousTodayStats.kcal;
 
-    addWorkout({
+    const entry = addWorkout({
       date: today,
       reps: 0,
       activeKcal,
       totalKcal,
     });
+
+    const parts: string[] = [];
+    if (activeKcal > 0) parts.push(`${activeKcal.toLocaleString()} active`);
+    if (totalKcal > 0) parts.push(`${totalKcal.toLocaleString()} total`);
+    const detail = parts.length > 0 ? `${parts.join(' · ')} kcal` : undefined;
+
+    showToast({
+      message: 'Logged calories',
+      detail,
+      action: {
+        label: 'Undo',
+        onClick: () => deleteWorkout(entry.id),
+      },
+    });
+
+    const newKcalToday = Math.max(activeKcal, totalKcal, previousKcalToday);
+    if (bestKcal > 0 && previousKcalToday <= bestKcal && newKcalToday > bestKcal) {
+      celebratePRIfNew('kcal', newKcalToday, today);
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -605,6 +714,17 @@ export default function Home() {
   const todayStats = getTodayStats();
   const isLevelUp = stats.level > previousLevel;
 
+  const lastRepsEntry = (() => {
+    let latest: WorkoutEntry | null = null;
+    for (const entry of workouts) {
+      if (entry.reps <= 0) continue;
+      if (!latest || entry.timestamp > latest.timestamp) latest = entry;
+    }
+    return latest
+      ? { reps: latest.reps, timestamp: latest.timestamp }
+      : null;
+  })();
+
   return (
     <main className="min-h-screen bg-background">
       <div
@@ -777,7 +897,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-6">
-            <Calculator onSubmit={handleAddReps} />
+            <Calculator onSubmit={handleAddReps} lastEntry={lastRepsEntry} />
             <KcalInput onSubmit={handleAddKcal} />
             <TodayLog workouts={workouts} onDelete={deleteWorkout} />
           </div>
@@ -789,6 +909,7 @@ export default function Home() {
               isLevelUp={isLevelUp}
             />
             <WeeklyChart workouts={workouts} />
+            <PersonalBests workouts={workouts} />
             <StatsCards
               totalReps={stats.totalReps}
               totalActiveKcal={stats.totalActiveKcal}
@@ -842,6 +963,8 @@ export default function Home() {
           onClose={handleCloseAchievementPopup}
         />
       )}
+
+      <Toaster />
     </main>
   );
 }

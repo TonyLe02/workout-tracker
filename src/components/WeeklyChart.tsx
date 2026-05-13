@@ -24,7 +24,7 @@ import {
 } from 'date-fns';
 
 // Icons
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
 // Types/Interfaces
 import type { WorkoutEntry } from '@/types/workout';
@@ -55,8 +55,95 @@ interface CustomTooltipProps {
   label?: string;
 }
 
+function sumWindow(workouts: WorkoutEntry[], from: Date, to: Date) {
+  const byDate: Record<string, WorkoutEntry[]> = {};
+  let totalReps = 0;
+
+  for (const workout of workouts) {
+    const workoutDate = new Date(workout.date);
+    if (workoutDate < from || workoutDate > to) continue;
+    totalReps += workout.reps;
+    if (!byDate[workout.date]) byDate[workout.date] = [];
+    byDate[workout.date].push(workout);
+  }
+
+  let totalKcal = 0;
+  for (const date of Object.keys(byDate)) {
+    totalKcal += dayKcal(byDate[date]);
+  }
+
+  return { reps: totalReps, kcal: totalKcal };
+}
+
+function percentDelta(current: number, previous: number): number | null {
+  if (previous === 0) return current > 0 ? Infinity : null;
+  return ((current - previous) / previous) * 100;
+}
+
+interface TrendBadgeProps {
+  delta: number | null;
+  label: string;
+}
+
+function TrendBadge({ delta, label }: TrendBadgeProps) {
+  if (delta === null) {
+    return null;
+  }
+
+  if (delta === Infinity) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-green-500/10 text-green-400 ring-1 ring-green-500/20 text-[11px] font-medium">
+        <TrendingUp className="w-3 h-3" />
+        New {label}
+      </span>
+    );
+  }
+
+  const rounded = Math.round(delta);
+  if (rounded === 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-white/5 text-text-secondary ring-1 ring-white/10 text-[11px] font-medium">
+        <Minus className="w-3 h-3" />
+        Flat
+      </span>
+    );
+  }
+
+  const isUp = rounded > 0;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        isUp
+          ? 'bg-green-500/10 text-green-400 ring-1 ring-green-500/20'
+          : 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20'
+      }`}
+    >
+      {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      {isUp ? '+' : ''}
+      {rounded}% {label}
+    </span>
+  );
+}
+
 export function WeeklyChart({ workouts }: ProgressChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('week');
+
+  const trend = useMemo(() => {
+    if (timeRange !== 'week') return null;
+    const now = new Date();
+    const currentStart = subDays(now, 6);
+    const previousEnd = subDays(now, 7);
+    const previousStart = subDays(now, 13);
+
+    const current = sumWindow(workouts, currentStart, now);
+    const previous = sumWindow(workouts, previousStart, previousEnd);
+
+    return {
+      reps: percentDelta(current.reps, previous.reps),
+      kcal: percentDelta(current.kcal, previous.kcal),
+    };
+  }, [workouts, timeRange]);
 
   const chartData = useMemo(() => {
     const now = new Date();
@@ -177,7 +264,10 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
 
       {/* Reps Chart */}
       <div className="mb-6">
-        <div className="text-xs text-text-secondary mb-2">Reps</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-text-secondary">Reps</div>
+          {trend && <TrendBadge delta={trend.reps} label="vs last week" />}
+        </div>
         <div className="h-32">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
@@ -205,7 +295,10 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
 
       {/* Calories Chart */}
       <div>
-        <div className="text-xs text-text-secondary mb-2">Total Calories</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-text-secondary">Total Calories</div>
+          {trend && <TrendBadge delta={trend.kcal} label="vs last week" />}
+        </div>
         <div className="h-32">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>

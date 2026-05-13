@@ -14,10 +14,12 @@ import { useWorkoutStore } from '@/store/workout-store';
 // Components
 import { AchievementsGrid, AchievementPopup } from '@/components/Achievements';
 import { Calculator } from '@/components/Calculator';
+import { ConfettiBurst } from '@/components/ConfettiBurst';
 import { DailyGoals } from '@/components/DailyGoals';
 import { HeatmapCard } from '@/components/HeatmapCard';
 import { KcalInput } from '@/components/KcalInput';
 import { LevelCard } from '@/components/LevelCard';
+import { MobileQuickAdd } from '@/components/MobileQuickAdd';
 import { NowPlaying } from '@/components/NowPlaying';
 import { PersonalBests } from '@/components/PersonalBests';
 import { StatsCards } from '@/components/StatsCards';
@@ -114,7 +116,14 @@ function getUserMetadataAvatar(user: User | null) {
   return null;
 }
 
-function getGreeting() {
+function getGreeting(repsHit: boolean, kcalHit: boolean) {
+  if (repsHit && kcalHit) {
+    const phrases = ['Crushing it', 'Beast mode', 'Killing it', 'On fire'];
+    return phrases[new Date().getDate() % phrases.length];
+  }
+  if (repsHit) return 'Strong work';
+  if (kcalHit) return 'Burning bright';
+
   const hour = new Date().getHours();
   if (hour < 5) return 'Working late';
   if (hour < 12) return 'Good morning';
@@ -158,10 +167,14 @@ function previousBestPerDay(
   return { bestReps, bestKcal };
 }
 
-function celebratePRIfNew(metric: 'reps' | 'kcal', value: number, today: string) {
+function celebratePRIfNew(
+  metric: 'reps' | 'kcal',
+  value: number,
+  today: string
+): boolean {
   const storageKey = `pr_celebrated_${metric}`;
   const lastDate = localStorage.getItem(storageKey);
-  if (lastDate === today) return;
+  if (lastDate === today) return false;
 
   localStorage.setItem(storageKey, today);
   const label = metric === 'reps' ? 'reps' : 'kcal';
@@ -172,6 +185,33 @@ function celebratePRIfNew(metric: 'reps' | 'kcal', value: number, today: string)
     detail: `${value.toLocaleString()} ${label} today — your best day ever.`,
     durationMs: 6000,
   });
+
+  return true;
+}
+
+function average7DayPerDay(
+  workouts: WorkoutEntry[],
+  today: Date
+): { reps: number; kcal: number } {
+  let repsSum = 0;
+  let kcalSum = 0;
+
+  for (let i = 0; i < 7; i++) {
+    const target = new Date(today);
+    target.setDate(target.getDate() - i);
+    const dateStr = format(target, 'yyyy-MM-dd');
+    const dayWorkouts = workouts.filter((w) => w.date === dateStr);
+    repsSum += dayWorkouts.reduce((sum, w) => sum + w.reps, 0);
+    const latestActive = dayWorkouts
+      .filter((w) => w.activeKcal > 0)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal ?? 0;
+    const latestTotal = dayWorkouts
+      .filter((w) => w.totalKcal > 0)
+      .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal ?? 0;
+    kcalSum += Math.max(latestActive, latestTotal);
+  }
+
+  return { reps: repsSum / 7, kcal: kcalSum / 7 };
 }
 
 export default function Home() {
@@ -189,9 +229,11 @@ export default function Home() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeName, setWelcomeName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const calculatorSentinelRef = useRef<HTMLDivElement>(null);
   const hasHydratedRemoteDataRef = useRef(false);
   const isManualSyncingRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
+  const [prConfettiTrigger, setPrConfettiTrigger] = useState(0);
 
   const {
     workouts,
@@ -495,7 +537,9 @@ export default function Home() {
 
     const newRepsToday = previousRepsToday + reps;
     if (bestReps > 0 && previousRepsToday <= bestReps && newRepsToday > bestReps) {
-      celebratePRIfNew('reps', newRepsToday, today);
+      if (celebratePRIfNew('reps', newRepsToday, today)) {
+        setPrConfettiTrigger((value) => value + 1);
+      }
     }
   };
 
@@ -529,7 +573,9 @@ export default function Home() {
 
     const newKcalToday = Math.max(activeKcal, totalKcal, previousKcalToday);
     if (bestKcal > 0 && previousKcalToday <= bestKcal && newKcalToday > bestKcal) {
-      celebratePRIfNew('kcal', newKcalToday, today);
+      if (celebratePRIfNew('kcal', newKcalToday, today)) {
+        setPrConfettiTrigger((value) => value + 1);
+      }
     }
   };
 
@@ -713,6 +759,10 @@ export default function Home() {
 
   const todayStats = getTodayStats();
   const isLevelUp = stats.level > previousLevel;
+  const repsGoalHit = todayStats.reps >= dailyGoal.reps && dailyGoal.reps > 0;
+  const kcalGoalHit = todayStats.kcal >= dailyGoal.activeKcal && dailyGoal.activeKcal > 0;
+
+  const sevenDayAverages = average7DayPerDay(workouts, new Date());
 
   const lastRepsEntry = (() => {
     let latest: WorkoutEntry | null = null;
@@ -733,7 +783,7 @@ export default function Home() {
       />
       <div className="fixed inset-0 bg-background/50 pointer-events-none" />
 
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-4 py-8">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-4 pt-8 pb-28 sm:pb-8">
         <header className="flex items-center justify-between mb-8 gap-3 sm:gap-4">
           <input
             type="file"
@@ -745,7 +795,7 @@ export default function Home() {
 
           <div className="flex flex-col leading-tight min-w-0">
             <h1 className="font-display text-lg sm:text-3xl font-semibold tracking-tight text-white leading-tight inline-flex items-baseline flex-wrap gap-x-1.5">
-              <span className="hidden sm:inline">{getGreeting()},</span>
+              <span className="hidden sm:inline">{getGreeting(repsGoalHit, kcalGoalHit)},</span>
               {isEditingName ? (
                 <input
                   type="text"
@@ -897,7 +947,9 @@ export default function Home() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-6">
-            <Calculator onSubmit={handleAddReps} lastEntry={lastRepsEntry} />
+            <div ref={calculatorSentinelRef}>
+              <Calculator onSubmit={handleAddReps} lastEntry={lastRepsEntry} />
+            </div>
             <KcalInput onSubmit={handleAddKcal} />
             <TodayLog workouts={workouts} onDelete={deleteWorkout} />
           </div>
@@ -924,6 +976,8 @@ export default function Home() {
               goalReps={dailyGoal.reps}
               currentKcal={todayStats.kcal}
               goalKcal={dailyGoal.activeKcal}
+              avgReps={sevenDayAverages.reps}
+              avgKcal={sevenDayAverages.kcal}
               onGoalChange={(reps, kcal) =>
                 setDailyGoal({ reps, activeKcal: kcal })
               }
@@ -964,6 +1018,11 @@ export default function Home() {
         />
       )}
 
+      <div className="pointer-events-none fixed inset-0 z-50">
+        <ConfettiBurst trigger={prConfettiTrigger} spread={260} count={32} />
+      </div>
+
+      <MobileQuickAdd target={calculatorSentinelRef} onAdd={handleAddReps} />
       <Toaster />
     </main>
   );

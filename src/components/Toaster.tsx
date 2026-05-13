@@ -145,7 +145,7 @@ export function Toaster() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end">
+    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end">
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <ToastItem toast={toast} />

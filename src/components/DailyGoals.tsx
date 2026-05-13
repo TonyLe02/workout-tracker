@@ -8,14 +8,23 @@ import { ConfettiBurst } from './ConfettiBurst';
 import { ProgressRing } from './ProgressRing';
 
 // Icons
-import { Check, Dumbbell, Flame, Settings, Target } from 'lucide-react';
+import { Check, Dumbbell, Flame, Lightbulb, Settings, Target } from 'lucide-react';
 
 interface DailyGoalsProps {
   currentReps: number;
   goalReps: number;
   currentKcal: number;
   goalKcal: number;
+  avgReps?: number;
+  avgKcal?: number;
   onGoalChange?: (reps: number, kcal: number) => void;
+}
+
+function suggestGoal(avg: number): number {
+  if (avg <= 0) return 0;
+  // Round to nearest sensible bucket so suggestions feel intentional.
+  const step = avg >= 500 ? 50 : avg >= 100 ? 25 : 10;
+  return Math.max(step, Math.round(avg / step) * step);
 }
 
 export function DailyGoals({
@@ -23,6 +32,8 @@ export function DailyGoals({
   goalReps,
   currentKcal,
   goalKcal,
+  avgReps,
+  avgKcal,
   onGoalChange,
 }: DailyGoalsProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -66,6 +77,24 @@ export function DailyGoals({
     const newKcal = parseInt(editKcal, 10) || 300;
     onGoalChange?.(newReps, newKcal);
     setIsEditing(false);
+  };
+
+  const suggestedReps = avgReps !== undefined ? suggestGoal(avgReps) : 0;
+  const suggestedKcal = avgKcal !== undefined ? suggestGoal(avgKcal) : 0;
+
+  const repsOffByALot =
+    suggestedReps > 0 && Math.abs(suggestedReps - goalReps) / Math.max(goalReps, 1) > 0.3;
+  const kcalOffByALot =
+    suggestedKcal > 0 && Math.abs(suggestedKcal - goalKcal) / Math.max(goalKcal, 1) > 0.3;
+
+  const showRepsHint = !isEditing && repsOffByALot && suggestedReps !== goalReps;
+  const showKcalHint = !isEditing && kcalOffByALot && suggestedKcal !== goalKcal;
+
+  const applyRepsSuggestion = () => {
+    if (suggestedReps > 0) onGoalChange?.(suggestedReps, goalKcal);
+  };
+  const applyKcalSuggestion = () => {
+    if (suggestedKcal > 0) onGoalChange?.(goalReps, suggestedKcal);
   };
 
   return (
@@ -233,6 +262,43 @@ export function DailyGoals({
           )}
         </div>
       </div>
+      )}
+
+      {(showRepsHint || showKcalHint) && (
+        <div className="mt-4 pt-4 border-t border-border/50 space-y-1.5">
+          {showRepsHint && (
+            <button
+              type="button"
+              onClick={applyRepsSuggestion}
+              className="w-full flex items-center gap-2 text-left text-xs text-text-secondary hover:text-text-primary group transition-colors"
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-yellow-400/80 flex-shrink-0" />
+              <span className="flex-1">
+                Reps avg <span className="text-text-primary font-mono">{Math.round(avgReps ?? 0)}</span>/day · try{' '}
+                <span className="text-text-primary font-mono">{suggestedReps}</span>
+              </span>
+              <span className="text-yellow-400/80 group-hover:text-yellow-300 text-[11px] font-semibold uppercase tracking-wider">
+                Apply
+              </span>
+            </button>
+          )}
+          {showKcalHint && (
+            <button
+              type="button"
+              onClick={applyKcalSuggestion}
+              className="w-full flex items-center gap-2 text-left text-xs text-text-secondary hover:text-text-primary group transition-colors"
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-yellow-400/80 flex-shrink-0" />
+              <span className="flex-1">
+                Kcal avg <span className="text-text-primary font-mono">{Math.round(avgKcal ?? 0)}</span>/day · try{' '}
+                <span className="text-text-primary font-mono">{suggestedKcal}</span>
+              </span>
+              <span className="text-yellow-400/80 group-hover:text-yellow-300 text-[11px] font-semibold uppercase tracking-wider">
+                Apply
+              </span>
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

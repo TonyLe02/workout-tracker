@@ -114,7 +114,7 @@ function ToastItem({ toast }: { toast: Toast }) {
           {toast.message}
         </div>
         {toast.detail && (
-          <div className="text-xs text-text-secondary mt-0.5 truncate">
+          <div className="text-xs text-text-secondary mt-0.5 leading-snug">
             {toast.detail}
           </div>
         )}

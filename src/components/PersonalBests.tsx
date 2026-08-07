@@ -5,6 +5,7 @@ import { format, isToday, isYesterday, parseISO } from 'date-fns';
 
 import { Clock, Crown, Dumbbell, Flame } from 'lucide-react';
 
+import { sumKcalForDay } from '@/lib/kcal';
 import type { WorkoutEntry } from '@/types/workout';
 
 interface PersonalBestsProps {
@@ -65,15 +66,7 @@ function findBests(workouts: WorkoutEntry[]): { reps: DailyRecord; kcal: DailyRe
   for (const date of Object.keys(byDate)) {
     const entries = byDate[date];
     const reps = entries.reduce((sum, entry) => sum + entry.reps, 0);
-    const latestActive = entries
-      .filter((entry) => entry.activeKcal > 0)
-      .sort((leftEntry, rightEntry) => rightEntry.timestamp - leftEntry.timestamp)[0]
-      ?.activeKcal ?? 0;
-    const latestTotal = entries
-      .filter((entry) => entry.totalKcal > 0)
-      .sort((leftEntry, rightEntry) => rightEntry.timestamp - leftEntry.timestamp)[0]
-      ?.totalKcal ?? 0;
-    const kcal = Math.max(latestActive, latestTotal);
+    const kcal = sumKcalForDay(entries);
 
     if (reps > bestReps.value) bestReps = { value: reps, date };
     if (kcal > bestKcal.value) bestKcal = { value: kcal, date };

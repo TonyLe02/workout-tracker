@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { format, parseISO, differenceInDays } from 'date-fns';
 
 import { ACHIEVEMENTS } from '@/data/achievements';
+import { sumKcalForDay } from '@/lib/kcal';
 
 import type { WorkoutEntry, UserStats, DailyGoal } from '@/types/workout';
 import {
@@ -50,7 +51,7 @@ const DEFAULT_GOAL: DailyGoal = {
 function calculateStatsFromWorkouts(workouts: WorkoutEntry[]): UserStats {
   const totalReps = workouts.reduce((sum, workout) => sum + workout.reps, 0);
 
-  // Group workouts by date and calculate kcal per day using max(activeSum, latestTotal)
+  // Group workouts by date and sum kcal per day (same additive rule as reps)
   const workoutsByDate: Record<string, WorkoutEntry[]> = {};
   for (const workout of workouts) {
     if (!workoutsByDate[workout.date]) workoutsByDate[workout.date] = [];
@@ -59,15 +60,7 @@ function calculateStatsFromWorkouts(workouts: WorkoutEntry[]): UserStats {
 
   let totalKcal = 0;
   for (const date of Object.keys(workoutsByDate)) {
-    const dayWorkouts = workoutsByDate[date];
-    // Get latest activeKcal for the day (upsert behavior, not accumulative)
-    const latestActive = dayWorkouts
-      .filter((w) => w.activeKcal > 0)
-      .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal || 0;
-    const latestTotal = dayWorkouts
-      .filter((w) => w.totalKcal > 0)
-      .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
-    totalKcal += Math.max(latestActive, latestTotal);
+    totalKcal += sumKcalForDay(workoutsByDate[date]);
   }
 
   const totalXP = Math.round(
@@ -198,22 +191,17 @@ export const useWorkoutStore = create<WorkoutStore>()(
         const today = format(new Date(), 'yyyy-MM-dd');
         const todayWorkouts = get().workouts.filter((w) => w.date === today);
 
-        // Get the latest activeKcal entry for today (upsert behavior, not accumulative)
-        const latestActiveKcal = todayWorkouts
-          .filter((w) => w.activeKcal > 0)
-          .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal || 0;
-        // Get the latest totalKcal entry for today (end of day correction)
-        const latestTotalKcal = todayWorkouts
-          .filter((w) => w.totalKcal > 0)
-          .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal || 0;
+        // Calories accumulate across entries for the day, same as reps.
+        const activeKcal = todayWorkouts.reduce((sum, w) => sum + w.activeKcal, 0);
+        const totalKcal = todayWorkouts.reduce((sum, w) => sum + w.totalKcal, 0);
 
-        // Total kcal is the max of latest active vs the end-of-day total
-        const kcal = Math.max(latestActiveKcal, latestTotalKcal);
+        // Total kcal is the max of summed active vs summed total for the day
+        const kcal = Math.max(activeKcal, totalKcal);
 
         return {
           reps: todayWorkouts.reduce((sum, w) => sum + w.reps, 0),
-          activeKcal: latestActiveKcal,
-          totalKcal: latestTotalKcal,
+          activeKcal,
+          totalKcal,
           kcal, // The display value: max(activeKcal, totalKcal)
         };
       },

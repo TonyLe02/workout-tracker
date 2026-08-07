@@ -32,6 +32,7 @@ import { TopTracks } from '@/components/TopTracks';
 import { WeeklyChart } from '@/components/WeeklyChart';
 
 // Utils/Helpers
+import { sumKcalForDay } from '@/lib/kcal';
 import { secureGet } from '@/lib/secure-storage';
 import { getSpotifyAuthUrl } from '@/lib/spotify';
 import {
@@ -154,15 +155,7 @@ function previousBestPerDay(
   for (const date of Object.keys(grouped)) {
     const entries = grouped[date];
     const reps = entries.reduce((sum, entry) => sum + entry.reps, 0);
-    const latestActive = entries
-      .filter((entry) => entry.activeKcal > 0)
-      .sort((leftEntry, rightEntry) => rightEntry.timestamp - leftEntry.timestamp)[0]
-      ?.activeKcal ?? 0;
-    const latestTotal = entries
-      .filter((entry) => entry.totalKcal > 0)
-      .sort((leftEntry, rightEntry) => rightEntry.timestamp - leftEntry.timestamp)[0]
-      ?.totalKcal ?? 0;
-    const kcal = Math.max(latestActive, latestTotal);
+    const kcal = sumKcalForDay(entries);
 
     if (reps > bestReps) bestReps = reps;
     if (kcal > bestKcal) bestKcal = kcal;
@@ -206,13 +199,7 @@ function average7DayPerDay(
     const dateStr = format(target, 'yyyy-MM-dd');
     const dayWorkouts = workouts.filter((w) => w.date === dateStr);
     repsSum += dayWorkouts.reduce((sum, w) => sum + w.reps, 0);
-    const latestActive = dayWorkouts
-      .filter((w) => w.activeKcal > 0)
-      .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal ?? 0;
-    const latestTotal = dayWorkouts
-      .filter((w) => w.totalKcal > 0)
-      .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal ?? 0;
-    kcalSum += Math.max(latestActive, latestTotal);
+    kcalSum += sumKcalForDay(dayWorkouts);
   }
 
   return { reps: repsSum / 7, kcal: kcalSum / 7 };
@@ -914,13 +901,7 @@ export default function Home() {
     const yesterdayStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
     const yesterdayWorkouts = workouts.filter((w) => w.date === yesterdayStr);
     const reps = yesterdayWorkouts.reduce((sum, w) => sum + w.reps, 0);
-    const latestActive = yesterdayWorkouts
-      .filter((w) => w.activeKcal > 0)
-      .sort((a, b) => b.timestamp - a.timestamp)[0]?.activeKcal ?? 0;
-    const latestTotal = yesterdayWorkouts
-      .filter((w) => w.totalKcal > 0)
-      .sort((a, b) => b.timestamp - a.timestamp)[0]?.totalKcal ?? 0;
-    return { reps, kcal: Math.max(latestActive, latestTotal) };
+    return { reps, kcal: sumKcalForDay(yesterdayWorkouts) };
   })();
 
   const lastRepsEntry = (() => {

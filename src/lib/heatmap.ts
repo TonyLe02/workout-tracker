@@ -1,6 +1,9 @@
 // External libraries
 import { format, subDays, startOfDay } from 'date-fns';
 
+// Utils/Helpers
+import { sumKcalForDay } from './kcal';
+
 // Types/Interfaces
 import type { WorkoutEntry } from '@/types/workout';
 
@@ -31,10 +34,7 @@ function dailyTotalsByDate(workouts: WorkoutEntry[]): Map<string, DailyTotals> {
 
   Array.from(byDate.entries()).forEach(([date, dayWorkouts]) => {
     const reps = dayWorkouts.reduce((sum: number, workout) => sum + workout.reps, 0);
-    const sortedDescending = [...dayWorkouts].sort((a, b) => b.timestamp - a.timestamp);
-    const latestActive = sortedDescending.find((workout) => workout.activeKcal > 0)?.activeKcal ?? 0;
-    const latestTotal = sortedDescending.find((workout) => workout.totalKcal > 0)?.totalKcal ?? 0;
-    const kcal = Math.max(latestActive, latestTotal);
+    const kcal = sumKcalForDay(dayWorkouts);
 
     totals.set(date, { reps, kcal });
   });

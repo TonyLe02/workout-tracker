@@ -26,6 +26,9 @@ import {
 // Icons
 import { BarChart3, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 
+// Utils/Helpers
+import { sumKcalForDay } from '@/lib/kcal';
+
 // Types/Interfaces
 import type { WorkoutEntry } from '@/types/workout';
 
@@ -33,15 +36,6 @@ type TimeRange = 'week' | 'month' | 'year';
 
 interface ProgressChartProps {
   workouts: WorkoutEntry[];
-}
-
-// Each kcal log is a cumulative snapshot from the tracker (not a delta),
-// so the day's value is the latest reading — never a sum.
-function dayKcal(dayWorkouts: WorkoutEntry[]): number {
-  const latest = [...dayWorkouts].sort((a, b) => b.timestamp - a.timestamp);
-  const latestTotal = latest.find((w) => w.totalKcal > 0)?.totalKcal ?? 0;
-  const latestActive = latest.find((w) => w.activeKcal > 0)?.activeKcal ?? 0;
-  return latestTotal || latestActive;
 }
 
 interface TooltipEntry {
@@ -69,7 +63,7 @@ function sumWindow(workouts: WorkoutEntry[], from: Date, to: Date) {
 
   let totalKcal = 0;
   for (const date of Object.keys(byDate)) {
-    totalKcal += dayKcal(byDate[date]);
+    totalKcal += sumKcalForDay(byDate[date]);
   }
 
   return { reps: totalReps, kcal: totalKcal };
@@ -158,7 +152,7 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
           date: dateStr,
           label: format(date, 'EEE'),
           reps: dayWorkouts.reduce((sum, w) => sum + w.reps, 0),
-          kcal: dayKcal(dayWorkouts),
+          kcal: sumKcalForDay(dayWorkouts),
         };
       });
     }
@@ -173,7 +167,7 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
           date: dateStr,
           label: format(date, 'd'),
           reps: dayWorkouts.reduce((sum, w) => sum + w.reps, 0),
-          kcal: dayKcal(dayWorkouts),
+          kcal: sumKcalForDay(dayWorkouts),
         };
       });
     }
@@ -199,7 +193,7 @@ export function WeeklyChart({ workouts }: ProgressChartProps) {
 
       let monthKcal = 0;
       for (const date of Object.keys(byDate)) {
-        monthKcal += dayKcal(byDate[date]);
+        monthKcal += sumKcalForDay(byDate[date]);
       }
 
       return {

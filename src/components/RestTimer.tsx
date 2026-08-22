@@ -226,7 +226,10 @@ export function RestTimer() {
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             type="button"
-            onClick={toggleAutoStart}
+            onClick={() => {
+              haptic('tap');
+              toggleAutoStart();
+            }}
             aria-pressed={autoStart}
             title={
               autoStart
@@ -244,7 +247,10 @@ export function RestTimer() {
           </button>
           <button
             type="button"
-            onClick={toggleSound}
+            onClick={() => {
+              haptic('tap');
+              toggleSound();
+            }}
             aria-pressed={soundEnabled}
             aria-label={soundEnabled ? 'Mute the rest chime' : 'Unmute the rest chime'}
             title={soundEnabled ? 'Chime on' : 'Chime muted'}

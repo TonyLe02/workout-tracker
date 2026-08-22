@@ -216,10 +216,14 @@ export function PaceCard({ workouts, goalReps }: PaceCardProps) {
         </div>
 
         <div className="relative h-11 rounded-xl bg-surface-hover/40 overflow-hidden">
+          <span
+            className="absolute inset-x-0 bottom-0 h-px bg-white/15"
+            aria-hidden="true"
+          />
           {HOUR_TICKS.map((hour) => (
             <span
               key={`tick-${hour}`}
-              className="absolute top-0 bottom-0 w-px bg-white/10"
+              className="absolute bottom-0 w-px h-2 bg-white/40"
               style={{ left: `${(hour / 24) * 100}%` }}
               aria-hidden="true"
             />
@@ -263,7 +267,7 @@ export function PaceCard({ workouts, goalReps }: PaceCardProps) {
           )}
 
           <span
-            className="absolute top-0 bottom-0 w-px bg-white/40"
+            className="absolute top-0 bottom-0 w-0.5 -translate-x-[0.5px] bg-white/60"
             style={{ left: `${nowPercent}%` }}
             aria-hidden="true"
           />

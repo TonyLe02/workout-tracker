@@ -86,9 +86,10 @@ export function NextMilestones({ stats, unlockedIds }: NextMilestonesProps) {
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
-                        // Still locked, so the bar always leaves a remainder
-                        // rather than reading as earned at 99%.
-                        width: `${Math.min(94, Math.max(3, percent))}%`,
+                        // Still locked: the fill maps onto 3-96% rather than
+                        // clamping, so it never reads as earned and 94% still
+                        // reads as behind 99%.
+                        width: `${3 + progress.ratio * 93}%`,
                         backgroundImage: `linear-gradient(90deg, ${barFrom}, ${barTo})`,
                       }}
                     />

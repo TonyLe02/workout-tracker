@@ -44,7 +44,7 @@ function AchievementBadge({
   return (
     <div
       className={`
-        relative p-4 rounded-xl border border-white/10
+        relative p-4 rounded-xl border border-white/10 bg-surface/60
         h-[150px] flex flex-col
         ${unlocked || started ? '' : 'opacity-20'}
         ${isNew ? 'animate-badge-unlock' : ''}
@@ -93,9 +93,10 @@ function AchievementBadge({
             <div
               className="h-full rounded-full"
               style={{
-                // Locked means locked: keep a visible remainder so a 99% bar
-                // never reads as a filled one.
-                width: `${Math.min(94, Math.max(3, Math.round(progress.ratio * 100)))}%`,
+                // Locked means locked, so the fill maps onto 3-96% instead of
+                // clamping: a 99% bar still shows a remainder, and 94% and 99%
+                // stay visibly different.
+                width: `${3 + progress.ratio * 93}%`,
                 backgroundImage: `linear-gradient(90deg, ${barFrom}, ${barTo})`,
               }}
             />

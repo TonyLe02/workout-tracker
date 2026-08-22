@@ -87,12 +87,27 @@ function calculateStatsFromWorkouts(workouts: WorkoutEntry[]): UserStats {
   };
 
   const unlockedAchievements: string[] = [];
+  const unlockedIds = new Set<string>();
 
-  for (const achievement of ACHIEVEMENTS) {
-    if (achievement.requirement(computedStats)) {
+  // Achievement rewards feed back into total XP, so XP-threshold achievements
+  // can only be judged once every other reward has landed. A single pass made
+  // unlocking depend on array order and could leave an achievement locked while
+  // the XP total already cleared its requirement; keep sweeping until a pass
+  // unlocks nothing new.
+  let unlockedSomething = true;
+
+  while (unlockedSomething) {
+    unlockedSomething = false;
+
+    for (const achievement of ACHIEVEMENTS) {
+      if (unlockedIds.has(achievement.id)) continue;
+      if (!achievement.requirement(computedStats)) continue;
+
+      unlockedIds.add(achievement.id);
       unlockedAchievements.push(achievement.id);
       computedStats.totalXP += achievement.xpReward;
       computedStats.level = calculateLevel(computedStats.totalXP);
+      unlockedSomething = true;
     }
   }
 

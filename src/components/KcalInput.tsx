@@ -3,6 +3,9 @@
 // React/Next.js
 import { useState, useEffect, useCallback } from 'react';
 
+// Utils/Helpers
+import { haptic } from '@/lib/haptics';
+
 // Icons
 import { Delete, Flame, Heart, RotateCcw, Zap } from 'lucide-react';
 
@@ -152,6 +155,7 @@ export function KcalInput({ onSubmit }: KcalInputProps) {
   const chips = selectedField === 'active' ? ACTIVE_CHIPS : TOTAL_CHIPS;
 
   const handleSubmit = () => {
+    haptic('confirm');
     if (activeValue > 0 || totalValue > 0) {
       setIsAnimating(true);
       onSubmit(activeValue, totalValue);

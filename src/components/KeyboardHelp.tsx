@@ -21,6 +21,13 @@ const SHORTCUTS: { section: string; rows: ShortcutRow[] }[] = [
     ],
   },
   {
+    section: 'Rest Timer',
+    rows: [
+      { keys: ['T'], description: 'Start or pause the rest' },
+      { keys: ['Shift', 'T'], description: 'Skip the rest' },
+    ],
+  },
+  {
     section: 'App',
     rows: [
       { keys: ['?'], description: 'Show this shortcuts panel' },

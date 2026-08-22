@@ -9,6 +9,9 @@ import { formatDistanceToNowStrict } from 'date-fns';
 // Components
 import { showKeyboardHelp } from './KeyboardHelp';
 
+// Utils/Helpers
+import { haptic } from '@/lib/haptics';
+
 // Icons
 import { Clock, Delete, Dumbbell, HelpCircle, Plus, RefreshCcw, RotateCcw } from 'lucide-react';
 
@@ -53,6 +56,7 @@ export function Calculator({ onSubmit, label = 'COUNT REPS', lastEntry }: Calcul
   }, []);
 
   const handleNumber = useCallback((num: string) => {
+    haptic('tap');
     setDisplay((prev) => {
       if (prev === '0') return num;
       if (prev.length >= 6) return prev;
@@ -61,6 +65,7 @@ export function Calculator({ onSubmit, label = 'COUNT REPS', lastEntry }: Calcul
   }, []);
 
   const handleChip = useCallback((amount: number) => {
+    haptic('tap');
     setDisplay((prev) => {
       const next = (parseInt(prev, 10) || 0) + amount;
       return String(Math.min(next, MAX_VALUE));
@@ -90,6 +95,7 @@ export function Calculator({ onSubmit, label = 'COUNT REPS', lastEntry }: Calcul
   const handleAdd = useCallback(() => {
     const value = parseInt(display, 10);
     if (value > 0) {
+      haptic('confirm');
       setIsAnimating(true);
       onSubmit(value);
       setTimeout(() => {

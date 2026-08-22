@@ -5,6 +5,8 @@ import { create } from 'zustand';
 
 import { CheckCircle2, Trophy, Undo2, X } from 'lucide-react';
 
+import { phaseOf, useRestTimerStore } from '@/store/rest-timer-store';
+
 export type ToastTone = 'success' | 'celebrate' | 'info';
 
 export interface Toast {
@@ -142,10 +144,20 @@ function ToastItem({ toast }: { toast: Toast }) {
 export function Toaster() {
   const toasts = useToastStore((state) => state.toasts);
 
+  // The mobile dock grows by a row while a rest is on screen; toasts sit above it.
+  const endsAt = useRestTimerStore((state) => state.endsAt);
+  const pausedRemainingMs = useRestTimerStore((state) => state.pausedRemainingMs);
+  const doneAt = useRestTimerStore((state) => state.doneAt);
+  const restOnScreen = phaseOf({ endsAt, pausedRemainingMs, doneAt }) !== 'idle';
+
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end">
+    <div
+      className={`pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end ${
+        restOnScreen ? 'bottom-[9.5rem]' : 'bottom-24'
+      }`}
+    >
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto">
           <ToastItem toast={toast} />

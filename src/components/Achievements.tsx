@@ -14,8 +14,13 @@ import {
   X,
 } from 'lucide-react';
 
+// Utils/Helpers
+import { haptic } from '@/lib/haptics';
+import { getMilestoneProgress, type MilestoneProgress } from '@/lib/milestones';
+import { ACHIEVEMENT_TIER_BAR } from '@/lib/tiers';
+
 // Types/Interfaces
-import type { Achievement } from '@/types/workout';
+import type { Achievement, UserStats } from '@/types/workout';
 
 import { ACHIEVEMENTS, TIER_COLORS } from '@/data/achievements';
 
@@ -23,34 +28,83 @@ interface AchievementBadgeProps {
   achievement: Achievement;
   unlocked: boolean;
   isNew?: boolean;
+  progress?: MilestoneProgress | null;
 }
 
-function AchievementBadge({ achievement, unlocked, isNew = false }: AchievementBadgeProps) {
+function AchievementBadge({
+  achievement,
+  unlocked,
+  isNew = false,
+  progress = null,
+}: AchievementBadgeProps) {
   const tierColor = TIER_COLORS[achievement.tier];
+  const started = !unlocked && progress !== null && progress.ratio > 0;
+  const [barFrom, barTo] = ACHIEVEMENT_TIER_BAR[achievement.tier];
 
   return (
     <div
       className={`
         relative p-4 rounded-xl border border-white/10
         h-[150px] flex flex-col
-        ${unlocked ? '' : 'opacity-20'}
+        ${unlocked || started ? '' : 'opacity-20'}
         ${isNew ? 'animate-badge-unlock' : ''}
       `}
     >
       {/* Badge Icon */}
       <div className="text-center mb-2">
-        <span className="text-3xl">{unlocked ? achievement.icon : '🔒'}</span>
+        <span className={`text-3xl ${started ? 'opacity-60' : ''}`}>
+          {unlocked ? achievement.icon : '🔒'}
+        </span>
       </div>
 
       {/* Badge Info */}
-      <div className="text-center flex-1 flex flex-col justify-center min-h-0">
-        <div className={`text-sm font-semibold line-clamp-1 ${unlocked ? tierColor.text : 'text-muted'}`}>
+      <div className="text-center flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
+        <div
+          className={`text-sm font-semibold line-clamp-1 ${
+            unlocked ? tierColor.text : started ? 'text-text-secondary' : 'text-muted'
+          }`}
+        >
           {achievement.name}
         </div>
-        <div className={`text-xs mt-1 line-clamp-3 ${unlocked ? 'text-text-secondary' : 'text-muted'}`}>
+        <div
+          className={`text-xs mt-1 ${started ? 'line-clamp-1' : 'line-clamp-3'} ${
+            unlocked
+              ? 'text-text-secondary'
+              : started
+              ? 'text-text-secondary/80'
+              : 'text-muted'
+          }`}
+        >
           {achievement.description}
         </div>
       </div>
+
+      {/* Progress toward an unlock you have already started */}
+      {started && progress && (
+        <div className="mt-auto pt-2">
+          <div
+            className="h-1 rounded-full bg-background/70 overflow-hidden"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress.ratio * 100)}
+            aria-label={`${achievement.name}: ${progress.countLabel}`}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{
+                // Locked means locked: keep a visible remainder so a 99% bar
+                // never reads as a filled one.
+                width: `${Math.min(94, Math.max(3, Math.round(progress.ratio * 100)))}%`,
+                backgroundImage: `linear-gradient(90deg, ${barFrom}, ${barTo})`,
+              }}
+            />
+          </div>
+          <div className="text-[10px] font-mono text-text-secondary text-center mt-1 truncate">
+            {progress.countLabel}
+          </div>
+        </div>
+      )}
 
       {/* XP Reward */}
       {unlocked && (
@@ -70,6 +124,7 @@ function AchievementBadge({ achievement, unlocked, isNew = false }: AchievementB
 interface AchievementsGridProps {
   unlockedIds: string[];
   newAchievementIds?: string[];
+  stats: UserStats;
 }
 
 const PAGE_SIZE = 12;
@@ -85,18 +140,39 @@ const TIER_FILTERS: { value: TierFilter; label: string; chip: string }[] = [
   { value: 'diamond', label: 'Diamond', chip: 'bg-cyan-400/15 text-cyan-300 ring-cyan-400/30' },
 ];
 
-export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: AchievementsGridProps) {
+export function AchievementsGrid({
+  unlockedIds,
+  newAchievementIds = [],
+  stats,
+}: AchievementsGridProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState<TierFilter>('all');
 
+  const progressById = useMemo(() => {
+    const map = new Map<string, MilestoneProgress | null>();
+    for (const achievement of ACHIEVEMENTS) {
+      map.set(achievement.id, getMilestoneProgress(achievement, stats));
+    }
+    return map;
+  }, [stats]);
+
   const sortedAchievements = useMemo(() => {
+    const ratioOf = (id: string) => progressById.get(id)?.ratio ?? 0;
+
     const sorted = [...ACHIEVEMENTS].sort((a, b) => {
       const aUnlocked = unlockedIds.includes(a.id);
       const bUnlocked = unlockedIds.includes(b.id);
 
       if (aUnlocked !== bUnlocked) return bUnlocked ? 1 : -1;
+
+      // Locked badges lead with the ones you are closest to earning.
+      if (!aUnlocked) {
+        const ratioDelta = ratioOf(b.id) - ratioOf(a.id);
+        if (ratioDelta !== 0) return ratioDelta;
+      }
+
       return TIER_ORDER[a.tier] - TIER_ORDER[b.tier];
     });
 
@@ -110,7 +186,7 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
         achievement.tier.toLowerCase().includes(query)
       );
     });
-  }, [search, tierFilter, unlockedIds]);
+  }, [progressById, search, tierFilter, unlockedIds]);
 
   useEffect(() => {
     setCurrentPage(0);
@@ -217,6 +293,7 @@ export function AchievementsGrid({ unlockedIds, newAchievementIds = [] }: Achiev
                 achievement={achievement}
                 unlocked={unlockedIds.includes(achievement.id)}
                 isNew={newAchievementIds.includes(achievement.id)}
+                progress={progressById.get(achievement.id) ?? null}
               />
             ))}
           </div>
@@ -259,6 +336,10 @@ interface AchievementPopupProps {
 
 export function AchievementPopup({ achievement, onClose }: AchievementPopupProps) {
   const tierColor = TIER_COLORS[achievement.tier];
+
+  useEffect(() => {
+    haptic('success');
+  }, []);
 
   return (
     <div

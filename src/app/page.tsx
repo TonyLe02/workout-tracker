@@ -9,6 +9,7 @@ import { format, subDays } from 'date-fns';
 import type { User } from '@supabase/supabase-js';
 
 // Store/State management
+import { useRestTimerStore } from '@/store/rest-timer-store';
 import { useWorkoutStore } from '@/store/workout-store';
 
 // Components
@@ -21,9 +22,12 @@ import { KcalInput } from '@/components/KcalInput';
 import { KeyboardHelp } from '@/components/KeyboardHelp';
 import { LevelCard } from '@/components/LevelCard';
 import { MobileQuickAdd } from '@/components/MobileQuickAdd';
+import { NextMilestones } from '@/components/NextMilestones';
 import { NowPlaying } from '@/components/NowPlaying';
+import { PaceCard } from '@/components/PaceCard';
 import { PersonalBests } from '@/components/PersonalBests';
 import { Playlists } from '@/components/Playlists';
+import { RestTimer } from '@/components/RestTimer';
 import { StatsCards } from '@/components/StatsCards';
 import { StickyMobileHeader } from '@/components/StickyMobileHeader';
 import { Toaster, showToast } from '@/components/Toaster';
@@ -222,6 +226,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const calculatorSentinelRef = useRef<HTMLDivElement>(null);
+  const restTimerSentinelRef = useRef<HTMLDivElement>(null);
   const hasHydratedRemoteDataRef = useRef(false);
   const isManualSyncingRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
@@ -302,7 +307,10 @@ export default function Home() {
 
       if (!nextUser) {
         setSyncStatus('local');
-        setShowWelcome(true);
+        // Supabase fires INITIAL_SESSION with an empty session on every load, so
+        // only gate on the welcome screen when there is genuinely no name yet.
+        const savedName = localStorage.getItem('user_name')?.trim() ?? '';
+        setShowWelcome(!savedName);
       }
     });
 
@@ -546,6 +554,9 @@ export default function Home() {
       activeKcal: 0,
       totalKcal: 0,
     });
+
+    // A logged set means the set is over: the rest starts itself.
+    useRestTimerStore.getState().autoStartAfterLog();
 
     const xpEarned = Math.round(reps * XP_PER_REP);
     showToast({
@@ -1149,6 +1160,9 @@ export default function Home() {
             <div ref={calculatorSentinelRef}>
               <Calculator onSubmit={handleAddReps} lastEntry={lastRepsEntry} />
             </div>
+            <div ref={restTimerSentinelRef}>
+              <RestTimer />
+            </div>
             <KcalInput onSubmit={handleAddKcal} />
             <TodayLog workouts={workouts} onDelete={deleteWorkout} onEdit={editWorkout} />
           </div>
@@ -1161,6 +1175,10 @@ export default function Home() {
               todayXP={Math.round(
                 todayStats.reps * XP_PER_REP + todayStats.kcal * XP_PER_ACTIVE_KCAL
               )}
+            />
+            <NextMilestones
+              stats={stats}
+              unlockedIds={stats.unlockedAchievements}
             />
             <WeeklyChart workouts={workouts} />
             <PersonalBests workouts={workouts} />
@@ -1186,6 +1204,7 @@ export default function Home() {
                 setDailyGoal({ reps, activeKcal: kcal })
               }
             />
+            <PaceCard workouts={workouts} goalReps={dailyGoal.reps} />
             <NowPlaying
               accessToken={spotifyToken}
               onConnect={async () => {
@@ -1218,6 +1237,7 @@ export default function Home() {
           <AchievementsGrid
             unlockedIds={stats.unlockedAchievements}
             newAchievementIds={newAchievements}
+            stats={stats}
           />
         </div>
       </div>
@@ -1229,7 +1249,11 @@ export default function Home() {
         />
       )}
 
-      <MobileQuickAdd target={calculatorSentinelRef} onAdd={handleAddReps} />
+      <MobileQuickAdd
+        target={calculatorSentinelRef}
+        restTarget={restTimerSentinelRef}
+        onAdd={handleAddReps}
+      />
       <StickyMobileHeader
         name={userName}
         initials={getInitials(userName)}

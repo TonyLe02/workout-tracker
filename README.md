@@ -14,8 +14,11 @@ So I built this. A simple rep counter with gamification to make it fun and addic
 
 - **Count reps** - Calculator-style numpad, punch in your number, done
 - **Track calories** - Log kcal from your fitness tracker
+- **Rest between sets** - Countdown that starts itself when you log reps, chime and buzz when it's over
 - **See your progress** - Daily goals, weekly charts, total stats
-- **Level up** - XP system, 35+ achievements, unlock tiers from Bronze to Diamond
+- **Know your pace** - Whether today's rate still lands the goal, and where you stood at this hour yesterday
+- **Chase the next badge** - Every locked achievement shows exactly how far off it is
+- **Level up** - XP system, 100 achievements, unlock tiers from Bronze to Diamond
 
 That's it. Simple.
 
@@ -24,6 +27,27 @@ That's it. Simple.
 - **Sign in with Google** to sync your data across devices
 - **Without sign in** your data stays on that device only
 - **Spotify widget** - Admin only (requires whitelist, RIP users)
+
+## Rest Timer
+
+Log a set and the rest starts on its own - no extra tap. Presets from 30s to 2m, `-15`/`+15` while it runs, and a countdown that keeps running through a reload or a locked screen. Scroll away and it follows you down into the bottom bar next to the quick-rep buttons.
+
+Three rising blips and a buzz when the rest is up. Mute the chime with the speaker icon, turn auto-start off with the `Auto` pill.
+
+## Keyboard
+
+| Key | Action |
+|-----|--------|
+| `0`-`9` | Type a rep count |
+| `Enter` | Add the count |
+| `Esc` | Clear the display |
+| `T` | Start or pause the rest |
+| `Shift` + `T` | Skip the rest |
+| `?` | Every shortcut |
+
+## Haptics
+
+Buttons buzz on Android and Chrome. iPhones have no vibration API in the browser, so they get a system haptic tick instead - lighter, but you feel it.
 
 ## XP System
 

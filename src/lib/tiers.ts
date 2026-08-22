@@ -22,6 +22,21 @@ export function getLevelTier(level: number): TierInfo {
   return BRONZE;
 }
 
+/**
+ * Progress-bar colors for achievement tiers. TIER_COLORS in the achievement data
+ * is tuned for dark badge gradients; a thin bar needs the brighter end of each
+ * hue to stay readable at 6px.
+ */
+export const ACHIEVEMENT_TIER_BAR: Record<
+  'bronze' | 'silver' | 'gold' | 'diamond',
+  [string, string]
+> = {
+  bronze: ['#f59e0b', '#d97706'],
+  silver: ['#e2e8f0', '#94a3b8'],
+  gold: ['#fde047', '#eab308'],
+  diamond: ['#67e8f9', '#22d3ee'],
+};
+
 export function hexWithAlpha(hex: string, alpha: number): string {
   const clamped = Math.max(0, Math.min(1, alpha));
   const byte = Math.round(clamped * 255)

@@ -8,6 +8,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 let supabaseClient: ReturnType<typeof createBrowserClient> | null = null;
 
+const WORKOUTS_PAGE_SIZE = 1000;
+
 export interface RemoteProfile {
   user_id: string;
   name: string | null;
@@ -169,17 +171,33 @@ export async function fetchWorkouts(userId: string): Promise<WorkoutEntry[]> {
     timestamp: number;
   };
 
-  const { data, error } = await supabase
-    .from('workouts')
-    .select('id, date, reps, active_kcal, total_kcal, exercise_type, timestamp')
-    .eq('user_id', userId)
-    .order('timestamp', { ascending: true });
+  // PostgREST caps every response at the project's "Max rows" (1000 by default),
+  // so page through until an empty page instead of trusting a single request.
+  const rows: WorkoutRow[] = [];
 
-  if (error) {
-    throw error;
+  while (true) {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('id, date, reps, active_kcal, total_kcal, exercise_type, timestamp')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: true })
+      .order('id', { ascending: true })
+      .range(rows.length, rows.length + WORKOUTS_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const page = (data ?? []) as WorkoutRow[];
+
+    if (page.length === 0) {
+      break;
+    }
+
+    rows.push(...page);
   }
 
-  return ((data ?? []) as WorkoutRow[]).map((workout) => ({
+  return rows.map((workout) => ({
     id: workout.id,
     date: workout.date,
     reps: workout.reps,
